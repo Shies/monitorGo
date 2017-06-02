@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户列表</title>
+</head>
+<body>
+<form action="/saveUser" method="post">
+{{range .User}}
+    {{.Id}}
+    {{.LoginName}}
+    {{.Name}}
+    {{.Email}}
+    {{.Phone}}
+    {{.EditGroupTask}}
+    {{.EditGroupUser}}
+    {{.Gid}}
+    {{.LastLogin}}
+    <br />
+{{end}}
+    登录名:
+<input type="text" name="loginname" />
+    用户名:
+<input type="text" name="name" />
+<select name="gid">
+    {{range .Group}}
+        <option value="{{.Id}}">{{.Name}}</option>
+    {{end}}
+</select>
+    邮箱:
+<input type="text" name="email" />
+    手机:
+<input type="text" name="phone" />
+
+<input type="checkbox" name="edit_group_task" value="1" />
+<input type="checkbox" name="edit_group_user" value="1" />
+<input type="submit" value="登录">
+</form>
+
+</body>
+</html>

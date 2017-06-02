@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>报表管理</title>
+</head>
+<body>
+{{range .}}
+    {{.Id}}
+	{{.Time}}
+	{{.RespTime}}
+	{{.RespCode}}
+    {{.Size}}
+	{{.Tid}}
+	{{.IP}}
+{{end}}
+
+</body>
+</html>

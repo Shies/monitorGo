@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>项目列表</title>
+</head>
+<body>
+{{range .}}
+    {{.Id}}
+	{{.Name}}
+	{{.Protocol}}
+	{{.Url}}
+	{{.Username}}
+    {{.Password}}
+    {{.Method}}
+	{{.Params}}
+	{{.Frequency}}
+	{{.Retry}}
+	{{.Goodcode}}
+	{{.Sizerange}}
+	{{.Status}}
+	{{.Createtime}}
+	{{.Uid}}
+	{{.Gid}}
+	{{.Respbody}}
+    <br />
+{{end}}
+
+<form action="/saveTask" method="post">
+项目名称：
+<input type="text" name="name" />
+请求协议：
+<select name="protocol">
+	<option value="HTTP">http</option>
+	<option value="HTTPS">https</option>
+	<option value="FTP">ftp</option>
+</select>
+请求地址：
+<input type="text" name="url" /> 
+<input type="submit" value="登录">
+</form>
+
+</body>
+</html>

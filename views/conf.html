@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>全局配置</title>
+</head>
+<body>
+<form action="/saveConf" method="post">
+故障任务：<input type="text" name="fault_task" value="{{ .fault_task }}">
+日志目录：<input type="text" name="log_dir" value="{{ .log_dir }}">
+        <input type="submit" value="登录">
+</form>
+
+</body>
+</html>

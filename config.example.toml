@@ -1,0 +1,9 @@
+[db]
+  addr = "172.16.0.148"
+  port = "3306"
+  username = "test"
+  password = "test"
+  db_name = "http_monitor"
+
+[xlog]
+  dir = "/data/log/monitorGo/"

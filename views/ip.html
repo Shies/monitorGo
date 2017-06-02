@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IP列表</title>
+</head>
+<body>
+{{range $k, $v := .Ips}}
+    {{range $v}}
+        {{.Tid}}
+        {{.IP}}
+    {{end}}
+{{end}}
+<form action="/saveIP" method="post">
+<select name="tid">
+{{range .Task}}
+    <option value="{{.Id}}">{{.Name}}</option>
+{{end}}
+</select>
+<input type="text" name="ips" />
+<input type="submit" value="保存" />
+</form>
+
+</body>
+</html>

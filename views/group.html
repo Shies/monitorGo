@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户组列表</title>
+</head>
+<body>
+<form action="/saveGroup" method="post">
+    {{range .}}
+        {{.Id}}
+        {{.Name}}
+        {{.IsUserAdmin}}
+        {{.IsGroupAdmin}}
+        {{.IsConfAdmin}}
+    <br />
+    {{end}}
+    组名：
+    <input type="text" name="name" />
+    用户管理：
+    <input type="checkbox" name="is_user_admin" value="1" />
+    用户组管理：
+    <input type="checkbox" name="is_group_admin" value="1" />
+    全局配置：
+    <input type="checkbox" name="is_conf_admin" value="1" />
+    <input type="submit" value="登录">
+</form>
+
+</body>
+</html>

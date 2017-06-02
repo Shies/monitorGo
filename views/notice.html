@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>邮件、短信通知</title>
+</head>
+<body>
+<form action="/saveNotice" method="post">
+{{range $k, $v := .Notice}}
+    {{range $v}}
+        {{.SendType}}
+        {{.Content}}
+        {{.Tid}}
+    {{end}}
+{{end}}
+
+项目ID：
+<select name="newtid">
+{{range .Task}}
+    <option value="{{.Id}}">{{.Name}}</option>
+{{end}}
+</select>
+发送目录：
+<select name="newsendtype">
+    <option value="0">邮件</option>
+    <option value="1">短信</option>
+</select>
+通知：
+<input type="text" name="newcontent" />
+<input type="submit" value="提交">
+
+</form>
+
+</body>
+</html>
