@@ -1,8 +1,8 @@
 [db]
-  addr = "172.16.0.148"
+  addr = "127.0.0.1"
   port = "3306"
-  username = "test"
-  password = "test"
+  username = "root"
+  password = ""
   db_name = "http_monitor"
 
 [xlog]
