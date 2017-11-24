@@ -7,9 +7,9 @@ import (
 	"net/http"
 )
 
-func GroupTpl(w http.ResponseWriter, req *http.Request) {
-	group := dao.GetGroup()
-	views("./views/group.html", group, w)
+func groupList(w http.ResponseWriter, req *http.Request) {
+	group := dao.GroupList()
+	views("views/group.html", group, w)
 }
 
 func saveGroup(w http.ResponseWriter, req *http.Request) {
@@ -21,7 +21,7 @@ func saveGroup(w http.ResponseWriter, req *http.Request) {
 	}
 
 	dao.SaveGroup(group)
-	w.Header().Add("Location", "/groupTpl")
+	w.Header().Add("Location", "/groupList")
 	w.WriteHeader(302)
 }
 

@@ -29,7 +29,7 @@ type DBField struct {
 	SmtpUser     string
 }
 
-func (d *Dao) GetConf() map[string]string {
+func (d *Dao) ConfList() map[string]string {
 	rows, err := d.db.Query(_CONF_BY_ALL)
 	if err != nil {
 		fmt.Println("db query failed:", err.Error())

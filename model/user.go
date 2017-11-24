@@ -22,7 +22,7 @@ type User struct {
 	LastLogin     string
 }
 
-func (d *Dao) GetUser() []*User {
+func (d *Dao) UserList() []*User {
 	rows, err := d.db.Query(_USERS_BY_ALL)
 	if err != nil {
 		fmt.Println("DB query failed", err.Error())

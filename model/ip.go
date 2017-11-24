@@ -20,7 +20,7 @@ type TaskIP struct {
 	IP  string
 }
 
-func (d *Dao) GetTaskIP(query string, param int64) map[int64][]*TaskIP {
+func (d *Dao) TaskIP(query string, param int64) map[int64][]*TaskIP {
 	rows, err := d.db.Query(query, param)
 	if err != nil {
 		fmt.Println("db query failed:", err.Error())

@@ -18,7 +18,7 @@ type Notice struct {
 	Tid      int64
 }
 
-func (d *Dao) GetSendList(sql string, param int64) map[int64][]*Notice {
+func (d *Dao) SendList(sql string, param int64) map[int64][]*Notice {
 	rows, err := d.db.Query(sql, param)
 	if err != nil {
 		fmt.Println("db query failed:", err.Error())

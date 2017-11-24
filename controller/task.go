@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func TaskTpl(w http.ResponseWriter, req *http.Request) {
+func taskList(w http.ResponseWriter, req *http.Request) {
 	var (
 		param string
 		sql   string
@@ -25,11 +25,11 @@ func TaskTpl(w http.ResponseWriter, req *http.Request) {
 		sql = model.TASK_BY_NAME
 	}
 
-	task := dao.GetTask(sql, param)
-	views("./views/task.html", task, w)
+	task := dao.TaskList(sql, param)
+	views("views/task.html", task, w)
 }
 
-func SaveTask(w http.ResponseWriter, req *http.Request) {
+func saveTask(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	for k, v := range req.Form {
 		req.Form[k][0] = template.HTMLEscapeString(v[0])
@@ -42,7 +42,7 @@ func SaveTask(w http.ResponseWriter, req *http.Request) {
 	}
 
 	dao.SaveTask(taskItem)
-	w.Header().Add("Location", "/taskTpl")
+	w.Header().Add("Location", "/taskList")
 	w.WriteHeader(302)
 }
 

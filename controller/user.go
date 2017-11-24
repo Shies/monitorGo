@@ -9,15 +9,17 @@ import (
 	"time"
 )
 
-func UserTpl(w http.ResponseWriter, req *http.Request) {
-	resp := make(map[string]interface{})
-	resp["User"] = dao.GetUser()
-	resp["Group"] = dao.GetGroup()
+func userList(w http.ResponseWriter, req *http.Request) {
+	var (
+	    resp = make(map[string]interface{}, 2)
+	)
+	resp["User"] = dao.UserList()
+	resp["Group"] = dao.GroupList()
 
-	views("./views/user.html", resp, w)
+	views("views/user.html", resp, w)
 }
 
-func SaveUser(w http.ResponseWriter, req *http.Request) {
+func saveUser(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	for k, v := range req.Form {
 		req.Form[k][0] = template.HTMLEscapeString(v[0])
@@ -30,7 +32,7 @@ func SaveUser(w http.ResponseWriter, req *http.Request) {
 	}
 
 	dao.SaveUser(user)
-	w.Header().Add("Location", "/userTpl")
+	w.Header().Add("Location", "/userList")
 	w.WriteHeader(302)
 }
 

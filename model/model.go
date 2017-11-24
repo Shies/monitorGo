@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"monitorGo/conf"
 	"net/http"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -11,7 +12,8 @@ import (
 type Dao struct {
 	db  *sql.DB
 	err error
-	req *http.Request
+	Res http.ResponseWriter
+	Req *http.Request
 }
 
 func New() *Dao {
@@ -32,4 +34,9 @@ func getConn() (*sql.DB, error) {
 
 func createConnStr(username string, password string, addr string, port string, db_name string) string {
 	return username + ":" + password + "@tcp(" + addr + ":" + port + ")/" + db_name
+}
+
+func convertTime(t string) int64 {
+	tm2, _ := time.Parse("2006-01-02 15:04:05", t)
+	return tm2.Unix()
 }

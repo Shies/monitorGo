@@ -4,14 +4,15 @@ import (
 	"net/http"
 )
 
-func ReportTpl(w http.ResponseWriter, req *http.Request) {
+func reportList(w http.ResponseWriter, req *http.Request) {
 	var (
 		tid int64
 		ip  string
 	)
+
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
-		tid = dao.GetReportTid()
+		tid = dao.ReportTid()
 	} else {
 		tid = parseInt(query["tid"][0])
 	}
@@ -21,14 +22,17 @@ func ReportTpl(w http.ResponseWriter, req *http.Request) {
 	} else {
 		ip = query["ip"][0]
 	}
-	reports := dao.GetReportAll(tid, ip)
-	views("./views/report.html", reports, w)
+
+	reports := dao.ReportList(tid, ip)
+	views("views/report.html", reports, w)
 }
 
-func StatusTpl(w http.ResponseWriter, req *http.Request) {
-	views("./views/status.html", dao.StateReport(), w)
+func statusList(w http.ResponseWriter, req *http.Request) {
+	status := dao.StateReport()
+	views("views/status.html", status, w)
 }
 
-func IndexTpl(w http.ResponseWriter, req *http.Request) {
-	views("./views/index.html", dao.IndexReport(), w)
+func indexList(w http.ResponseWriter, req *http.Request) {
+	index := dao.IndexReport()
+	views("views/index.html", index, w)
 }

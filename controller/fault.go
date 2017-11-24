@@ -1,26 +1,26 @@
 package controller
 
-import (
-	"net/http"
-)
+import "net/http"
 
-func FaultTpl(w http.ResponseWriter, req *http.Request) {
+func faultList(w http.ResponseWriter, req *http.Request) {
 	var (
 		tid int64
 		ip  string
 	)
+
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
-		tid = dao.GetFaultTid()
+		tid = dao.FaultTid()
 	} else {
 		tid = parseInt(query["tid"][0])
 	}
 
-    ip = "0.0.0.0"
 	if len(query["ip"]) != 0 {
-	    ip = query["ip"][0]
+		ip = query["ip"][0]
+	} else {
+		ip = "0.0.0.0"
 	}
 
-	faults := dao.GetFaultAll(tid, ip)
-	views("./views/fault.html", faults, w)
+	faults := dao.FaultList(tid, ip)
+	views("views/fault.html", faults, w)
 }

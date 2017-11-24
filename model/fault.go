@@ -22,7 +22,7 @@ type Fault struct {
 	IsRemind      int
 }
 
-func (d *Dao) GetFaultAll(tid int64, ip string) (faults []*Fault) {
+func (d *Dao) FaultList(tid int64, ip string) (faults []*Fault) {
 	var (
 		query string
 		rows  *sql.Rows
@@ -48,7 +48,7 @@ func (d *Dao) GetFaultAll(tid int64, ip string) (faults []*Fault) {
 	return faults
 }
 
-func (d *Dao) GetFaultTid() (tid int64) {
+func (d *Dao) FaultTid() (tid int64) {
 	err := d.db.QueryRow(_FAULT_BY_ONE).Scan(&tid)
 	if err != nil {
 		fmt.Println("DB query failed:", err.Error())

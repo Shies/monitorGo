@@ -14,17 +14,25 @@ var (
 )
 
 func parseInt(value string) int64 {
-	_int64, _ := strconv.ParseInt(value, 10, 64)
-	return _int64
+	intval, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		intval = 0
+	}
+
+	return intval
 }
 
-func atoi(value string) int {
-	_int, _ := strconv.Atoi(value)
-	return _int
+func atoi(value string) (intval int) {
+	intval, err := strconv.Atoi(value)
+	if err != nil {
+		intval = 0
+	}
+
+	return intval
 }
 
 func views(path string, data interface{}, w http.ResponseWriter) error {
-	t, err := template.ParseFiles(path)
+	t, err := template.ParseFiles("./" + path)
 	if err != nil {
 		fmt.Println(err)
 		return nil
@@ -37,7 +45,7 @@ func Register() bool {
 	setHttpHandle()
 
 	// 设置监听端口
-	err := http.ListenAndServe(":8888", nil)
+	err := http.ListenAndServe("127.0.0.1:8888", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
@@ -45,22 +53,22 @@ func Register() bool {
 	return true
 }
 
-func setHttpHandle() bool {
-	http.HandleFunc("/userTpl", UserTpl)
-	http.HandleFunc("/saveUser", SaveUser)
-	http.HandleFunc("/groupTpl", GroupTpl)
+func setHttpHandle() {
+	http.HandleFunc("/userTpl", userList)
+	http.HandleFunc("/saveUser", saveUser)
+	http.HandleFunc("/groupTpl", groupList)
 	http.HandleFunc("/saveGroup", saveGroup)
-	http.HandleFunc("/confTpl", ConfTpl)
-	http.HandleFunc("/saveConf", SaveConf)
-	http.HandleFunc("/noticeTpl", NoticeTpl)
-	http.HandleFunc("/saveNotice", SaveNotice)
-	http.HandleFunc("/ipTpl", IPTpl)
-	http.HandleFunc("/saveIP", SaveIP)
-	http.HandleFunc("/taskTpl", TaskTpl)
-	http.HandleFunc("/saveTask", SaveTask)
-	http.HandleFunc("/reportTpl", ReportTpl)
-	http.HandleFunc("/faultTpl", FaultTpl)
-	http.HandleFunc("/statusTpl", StatusTpl)
-	http.HandleFunc("/indexTpl", IndexTpl)
-	return true
+	http.HandleFunc("/confTpl", confList)
+	http.HandleFunc("/saveConf", saveConf)
+	http.HandleFunc("/noteTpl", noteList)
+	http.HandleFunc("/saveNote", saveNote)
+	http.HandleFunc("/ipTpl", ipList)
+	http.HandleFunc("/saveIP", saveIP)
+	http.HandleFunc("/taskTpl", taskList)
+	http.HandleFunc("/saveTask", saveTask)
+	http.HandleFunc("/reportTpl", reportList)
+	http.HandleFunc("/faultTpl", faultList)
+	http.HandleFunc("/statusTpl", statusList)
+	http.HandleFunc("/indexTpl", indexList)
+	return
 }

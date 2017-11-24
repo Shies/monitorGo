@@ -10,10 +10,14 @@ import (
 	"strings"
 )
 
+var (
+	dao = model.New()
+)
+
 const (
-	_SMTP_USER   = "SmtpUser"
-	_SMTP_PASS   = "SmtpPass"
-	_SMTP_SERVER = "SmtpServer"
+	_SMTP_USER   = "your email username"
+	_SMTP_PASS   = "your email password"
+	_SMTP_SERVER = "your email server"
 )
 
 // Smtp struct info.
@@ -23,32 +27,26 @@ type Mail struct {
 	server string
 }
 
-func Configure(user string, pass string, server string) *Mail {
+func (m *Mail) Send(to, subject, body, mailtype string) error {
 	mail := &Mail{
-		user:   user,
-		pass:   pass,
-		server: server,
+		user:   _SMTP_USER,
+		pass:   _SMTP_PASS,
+		server: _SMTP_SERVER,
 	}
-	return mail
-}
 
-func (m *Mail) Send(to []string, subject string, body string) {
-	mail := Configure(_SMTP_USER, _SMTP_PASS, _SMTP_SERVER)
-	var host = strings.Split(mail.server, ":")
-	// go func() {
-	// Set up authentication information.
-	auth := smtp.PlainAuth("", mail.user, mail.pass, host[0])
-	// Connect to the server, authenticate, set the sender and recipient,
-	// and send the email all in one step.
-	msg := []byte(
-		"Subject: " + subject + "\r\n" +
-			"\r\n" +
-			body + "\r\n")
-	err := smtp.SendMail(mail.server, auth, mail.user, to, msg)
-	if err != nil {
-		// log.Fatal(err)
-		fmt.Println(err)
+	hp := strings.Split(mail.server, ":")
+	auth := smtp.PlainAuth("", mail.user, mail.pass, hp[0])
+	var content_type string
+	if mailtype == "html" {
+		content_type = "Content-Type: text/" + mailtype + "; charset=UTF-8"
+	} else {
+		content_type = "Content-Type: text/plain" + "; charset=UTF-8"
 	}
+
+	msg := []byte("To: " + to + "\r\nFrom: " + mail.user + ">\r\nSubject: " + subject + "\r\n" + content_type + "\r\n\r\n" + body)
+	send_to := strings.Split(to, ";")
+	err := smtp.SendMail(mail.server, auth, mail.user, send_to, msg)
+	return err
 }
 
 func httpDo(method string, requestUrl string, params string, header map[string]string) string {
@@ -92,8 +90,10 @@ func parseUrl(requestUrl string, ip string) map[string]string {
 		return nil
 	}
 
-	var path string
-	_return := make(map[string]string)
+	var (
+		path string
+		ret  = make(map[string]string)
+	)
 	if urlData.Path != "" {
 		path = urlData.Path
 	}
@@ -101,26 +101,39 @@ func parseUrl(requestUrl string, ip string) map[string]string {
 		path = path + "?" + urlData.RawQuery
 	}
 
-	_return["header"] = "Host:" + urlData.Host
-	_return["url"] = urlData.Scheme + "://" + ip + path
+	ret["url"] = urlData.Scheme + "://" + ip + path
+	ret["header"] = "Host:" + urlData.Host
 
-	return _return
+	return ret
 }
 
-func sendMails(emails []string, msg string) {
+func SendMails(emails []string, msg string) bool {
 	mail := &Mail{}
-	conf := model.New().GetConf()
+
+	conf := dao.ConfList()
 	globalEmails := strings.Split(conf["GlobalEmails"], ",")
-	mail.Send(emails, "告警邮件", msg)
-	mail.Send(globalEmails, "告警邮件", msg)
+	for _, email := range globalEmails {
+		emails = append(emails, email)
+	}
+
+	fmt.Printf("%v\n", emails)
+	for _, email := range emails {
+		err := mail.Send(email, "告警邮件", msg, "normal")
+		if err != nil {
+			fmt.Printf("%v\n", err)
+		}
+	}
+
+	return true
 }
 
-func Request(t *model.TaskItem, ips []*model.TaskIP) {
+func Request(t *model.TaskItem, ips []*model.TaskIP) bool {
 	// time.Sleep(time.Duration(t.Frequency) * time.Minute)
 	if ips == nil {
 		resp := httpDo(t.Method, t.Url, t.Params, nil)
 		if resp == "" {
-			return
+			fmt.Printf("%s\n", t.Url)
+			return false
 		}
 	}
 
@@ -129,9 +142,13 @@ func Request(t *model.TaskItem, ips []*model.TaskIP) {
 		urlData := parseUrl(t.Url, v.IP)
 		part := strings.Split(urlData["header"], ":")
 		header["host"] = part[1]
-		resp := httpDo(t.Method, urlData["url"], t.Params, header)
-		if resp == "" {
-			return
-		}
+		go func() {
+			resp := httpDo(t.Method, urlData["url"], t.Params, header)
+			if resp == "" {
+				fmt.Printf("%s\n", urlData["url"])
+			}
+		}()
 	}
+
+	return true
 }

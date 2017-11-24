@@ -35,7 +35,7 @@ type TaskItem struct {
 	Respbody   string
 }
 
-func (d *Dao) GetTask(sql string, param string) (tasks []*TaskItem) {
+func (d *Dao) TaskList(sql string, param string) (tasks []*TaskItem) {
 	rows, err := d.db.Query(sql, param)
 	if err != nil {
 		fmt.Println("DB query failed", err.Error())

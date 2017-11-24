@@ -43,7 +43,7 @@ type Index struct {
 	TotalTime string
 }
 
-func (d *Dao) GetReportAll(tid int64, ip string) (reports []*Report) {
+func (d *Dao) ReportList(tid int64, ip string) (reports []*Report) {
 	var (
 		query string
 		rows  *sql.Rows
@@ -69,7 +69,7 @@ func (d *Dao) GetReportAll(tid int64, ip string) (reports []*Report) {
 	return reports
 }
 
-func (d *Dao) GetReportTid() (tid int64) {
+func (d *Dao) ReportTid() (tid int64) {
 	row := d.db.QueryRow(_REPORT_BY_ONE)
 	if err := row.Scan(&tid); err != nil {
 		if err == sql.ErrNoRows {
@@ -133,7 +133,7 @@ func (d *Dao) getReportAllByTid(tid int64, count int64) []*Report {
 	return reports
 }
 
-func (d *Dao) Assign(ti *TaskItem, r *Report) (li *Status) {
+func (d *Dao) assign(ti *TaskItem, r *Report) (li *Status) {
 	li = &Status{}
 	li.RespTime = r.RespTime
 	li.RespCode = r.RespCode
@@ -146,7 +146,7 @@ func (d *Dao) Assign(ti *TaskItem, r *Report) (li *Status) {
 }
 
 func (d *Dao) StateReport() []*Status {
-	tasks := d.GetTask(TASK_BY_ALL, "1")
+	tasks := d.TaskList(TASK_BY_ALL, "1")
 	if tasks == nil {
 		fmt.Println("tasks for nil")
 		return nil
@@ -158,12 +158,12 @@ func (d *Dao) StateReport() []*Status {
 		count := d.getIPCountByTid(v.Id)
 		if count == 0 {
 			r := d.getReportOneByTid(v.Id)
-			li = d.Assign(v, r)
+			li = d.assign(v, r)
 			status = append(status, li)
 		} else {
 			all := d.getReportAllByTid(v.Id, count)
 			for _, r := range all {
-				li := d.Assign(v, r)
+				li := d.assign(v, r)
 				status = append(status, li)
 			}
 		}
@@ -172,27 +172,22 @@ func (d *Dao) StateReport() []*Status {
 	return status
 }
 
-func (d *Dao) convertTime(t string) int64 {
-	tm2, _ := time.Parse("2006-01-02 15:04:05", t)
-	return tm2.Unix()
-}
-
-func (d *Dao) IndexAssign(v *TaskItem, now time.Time) (li *Index) {
+func (d *Dao) indexAssign(v *TaskItem, now time.Time) (li *Index) {
 	li = &Index{}
 	li.Id = v.Id
 	li.Name = v.Name
 	li.Url = v.Url
 
-	totaltime := now.Unix() - d.convertTime(v.Createtime)
+	totaltime := now.Unix() - convertTime(v.Createtime)
 	ip_count := d.getIPCountByTid(v.Id)
 	if ip_count == 0 {
 		ip_count = 1
 	}
 
 	var faulttime int64
-	faults := d.GetFaultAll(v.Id, "0.0.0.0")
+	faults := d.FaultList(v.Id, "0.0.0.0")
 	for _, val := range faults {
-		timediff := d.convertTime(val.LastCheckTime) - d.convertTime(val.StartTime) + int64(60*(v.Frequency))
+		timediff := convertTime(val.LastCheckTime) - convertTime(val.StartTime) + int64(60*(v.Frequency))
 		faulttime = int64(faulttime) + int64(timediff)
 		if faulttime == 0 {
 			continue
@@ -206,7 +201,7 @@ func (d *Dao) IndexAssign(v *TaskItem, now time.Time) (li *Index) {
 }
 
 func (d *Dao) IndexReport() []*Index {
-	tasks := d.GetTask(TASK_BY_ALL, "1")
+	tasks := d.TaskList(TASK_BY_ALL, "1")
 	if tasks == nil {
 		fmt.Println("tasks for nil")
 		return nil
@@ -215,7 +210,7 @@ func (d *Dao) IndexReport() []*Index {
 	var index []*Index
 	now := time.Now()
 	for _, v := range tasks {
-		li := d.IndexAssign(v, now)
+		li := d.indexAssign(v, now)
 		index = append(index, li)
 	}
 

@@ -18,7 +18,7 @@ type Group struct {
 	IsConfAdmin  int
 }
 
-func (d *Dao) GetGroup() []*Group {
+func (d *Dao) GroupList() []*Group {
 	rows, err := d.db.Query(_GROUPS_BY_ALL)
 	if err != nil {
 		fmt.Println("db query failed:", err.Error())

@@ -6,11 +6,12 @@ import (
 	"net/http"
 )
 
-func IPTpl(w http.ResponseWriter, req *http.Request) {
+func ipList(w http.ResponseWriter, req *http.Request) {
 	var (
 		param int64
 		sql   string
 	)
+
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
 		param = 999
@@ -21,13 +22,13 @@ func IPTpl(w http.ResponseWriter, req *http.Request) {
 	}
 
 	resp := make(map[string]interface{})
-	resp["Task"] = dao.GetTask(model.TASK_BY_ALL, "1")
-	resp["Ips"] = dao.GetTaskIP(sql, param)
+	resp["Task"] = dao.TaskList(model.TASK_BY_ALL, "1")
+	resp["Ips"] = dao.TaskIP(sql, param)
 
-	views("./views/ip.html", resp, w)
+	views("views/ip.html", resp, w)
 }
 
-func SaveIP(w http.ResponseWriter, req *http.Request) {
+func saveIP(w http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	ip := &model.TaskIP{
 		Tid: parseInt(req.PostFormValue("tid")),
@@ -35,7 +36,6 @@ func SaveIP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	dao.SaveIP(ip)
-	// 跳转
-	w.Header().Add("Location", "/ipTpl")
+	w.Header().Add("Location", "/ipList")
 	w.WriteHeader(302)
 }
