@@ -2,9 +2,3 @@ package: monitorGo
 import:
 - package: github.com/go-sql-driver/mysql
 - package: github.com/BurntSushi/toml
-#- package: go-common
-#  repo:    git@syncsvn.bilibili.co:platform/go-common.git
-#  vcs:     git
-#- package: go-business
-#  repo:    git@syncsvn.bilibili.co:platform/go-business.git
-#  vcs:     git
