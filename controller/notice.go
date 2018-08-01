@@ -2,16 +2,16 @@ package controller
 
 import (
 	"html/template"
+
 	"monitorGo/model"
-	"net/http"
 )
 
-func noteList(w http.ResponseWriter, req *http.Request) {
+func noticeList(c Context) {
 	var (
 		param int64
 		sql   string
+		req = c.Request()
 	)
-
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
 		param = 999
@@ -20,27 +20,30 @@ func noteList(w http.ResponseWriter, req *http.Request) {
 		sql = model.NOITCE_BY_TID
 		param = parseInt(query["tid"][0])
 	}
-
 	resp := make(map[string]interface{})
-	resp["Notice"] = dao.SendList(sql, param)
-	resp["Task"] = dao.TaskList(model.TASK_BY_ALL, "1")
-
-	views("views/notice.html", resp, w)
+	resp["Notice"] = dao.GetSendList(sql, param)
+	resp["Task"] = dao.GetTask(model.TASK_BY_ALL, "1")
+	c.SetData(resp)
+	c.SetPath("views/notice.html")
+	views(c)
 }
 
-func saveNote(w http.ResponseWriter, req *http.Request) {
+func saveNotice(c Context) {
+	var (
+		req = c.Request()
+		res = c.Response()
+	)
 	req.ParseForm()
 	for k, v := range req.Form {
 		req.Form[k][0] = template.HTMLEscapeString(v[0])
 	}
-
 	notice := &model.Notice{
 		SendType: atoi(req.PostFormValue("newsendtype")),
 		Content:  req.PostFormValue("newcontent"),
 		Tid:      parseInt(req.PostFormValue("newtid")),
 	}
-
 	dao.SaveNotice(notice)
-	w.Header().Add("Location", "/noticeTpl")
-	w.WriteHeader(302)
+	// 跳转
+	res.Header().Add("Location", "/noticeTpl")
+	res.WriteHeader(302)
 }

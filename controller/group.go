@@ -2,27 +2,32 @@ package controller
 
 import (
 	"fmt"
-	"html/template"
-	"monitorGo/model"
 	"net/http"
+	"html/template"
+
+	"monitorGo/model"
 )
 
-func groupList(w http.ResponseWriter, req *http.Request) {
-	group := dao.GroupList()
-	views("views/group.html", group, w)
+func groupList(c Context) {
+	c.SetData(dao.GetGroup())
+	c.SetPath("views/group.html")
+	views(c)
 }
 
-func saveGroup(w http.ResponseWriter, req *http.Request) {
+func saveGroup(c Context) {
+	var (
+		req = c.Request()
+		res = c.Response()
+	)
 	req.ParseForm()
 	group := getGroupParams(req)
 	if group.Name == "" {
 		fmt.Println("invalid params")
 		return
 	}
-
 	dao.SaveGroup(group)
-	w.Header().Add("Location", "/groupList")
-	w.WriteHeader(302)
+	res.Header().Add("Location", "/groupTpl")
+	res.WriteHeader(302)
 }
 
 func getGroupParams(req *http.Request) *model.Group {

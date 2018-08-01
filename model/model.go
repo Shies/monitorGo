@@ -3,7 +3,6 @@ package model
 import (
 	"database/sql"
 	"monitorGo/conf"
-	"net/http"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -12,8 +11,6 @@ import (
 type Dao struct {
 	db  *sql.DB
 	err error
-	Res http.ResponseWriter
-	Req *http.Request
 }
 
 func New() *Dao {

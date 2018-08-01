@@ -1,23 +1,26 @@
 package controller
 
 import (
-	"html/template"
-	"net/http"
 	"strings"
+	"html/template"
 )
 
-func confList(w http.ResponseWriter, req *http.Request) {
-	conf := dao.ConfList()
-	views("views/conf.html", conf, w)
+func confList(c Context) {
+	c.SetData(dao.GetConf())
+	c.SetPath("views/conf.html")
+	views(c)
 }
 
-func saveConf(w http.ResponseWriter, req *http.Request) {
+func saveConf(c Context) {
+	var (
+		req = c.Request()
+		res = c.Response()
+	)
 	req.ParseForm()
 	for key, val := range req.Form {
 		_val := template.HTMLEscapeString(strings.Join(val, ""))
 		dao.SaveConf(key, _val)
 	}
-
-	w.Header().Add("Location", "/confList")
-	w.WriteHeader(302)
+	res.Header().Add("Location", "/confTpl")
+	res.WriteHeader(302)
 }

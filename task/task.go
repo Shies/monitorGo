@@ -8,6 +8,7 @@ import (
 	"net/smtp"
 	"net/url"
 	"strings"
+	"sync"
 )
 
 var (
@@ -128,6 +129,7 @@ func SendMails(emails []string, msg string) bool {
 }
 
 func Request(t *model.TaskItem, ips []*model.TaskIP) bool {
+	var wg sync.WaitGroup
 	// time.Sleep(time.Duration(t.Frequency) * time.Minute)
 	if ips == nil {
 		resp := httpDo(t.Method, t.Url, t.Params, nil)
@@ -142,7 +144,9 @@ func Request(t *model.TaskItem, ips []*model.TaskIP) bool {
 		urlData := parseUrl(t.Url, v.IP)
 		part := strings.Split(urlData["header"], ":")
 		header["host"] = part[1]
+		wg.Add(1)
 		go func() {
+			defer wg.Done();
 			resp := httpDo(t.Method, urlData["url"], t.Params, header)
 			if resp == "" {
 				fmt.Printf("%s\n", urlData["url"])

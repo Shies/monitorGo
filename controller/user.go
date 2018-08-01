@@ -2,38 +2,40 @@ package controller
 
 import (
 	"fmt"
-	"html/template"
-	"monitorGo/model"
-	"net/http"
-	"strconv"
 	"time"
+	"strconv"
+	"net/http"
+	"html/template"
+
+	"monitorGo/model"
 )
 
-func userList(w http.ResponseWriter, req *http.Request) {
-	var (
-	    resp = make(map[string]interface{}, 2)
-	)
-	resp["User"] = dao.UserList()
-	resp["Group"] = dao.GroupList()
-
-	views("views/user.html", resp, w)
+func userList(c Context) {
+	resp := make(map[string]interface{})
+	resp["User"] = dao.GetUser()
+	resp["Group"] = dao.GetGroup()
+	c.SetData(resp)
+	c.SetPath("views/user.html")
+	views(c)
 }
 
-func saveUser(w http.ResponseWriter, req *http.Request) {
+func saveUser(c Context) {
+	var (
+		req = c.Request()
+		res = c.Response()
+	)
 	req.ParseForm()
 	for k, v := range req.Form {
 		req.Form[k][0] = template.HTMLEscapeString(v[0])
 	}
-
 	user := getUserParams(req)
 	if user.Name == "" || user.LoginName == "" {
 		fmt.Println("invalid params")
 		return
 	}
-
 	dao.SaveUser(user)
-	w.Header().Add("Location", "/userList")
-	w.WriteHeader(302)
+	res.Header().Add("Location", "/userTpl")
+	res.WriteHeader(302)
 }
 
 func getUserParams(req *http.Request) (user *model.User) {

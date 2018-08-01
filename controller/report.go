@@ -1,38 +1,36 @@
 package controller
 
-import (
-	"net/http"
-)
-
-func reportList(w http.ResponseWriter, req *http.Request) {
+func reportList(c Context) {
 	var (
 		tid int64
 		ip  string
+		req = c.Request()
 	)
-
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
-		tid = dao.ReportTid()
+		tid = dao.GetReportTid()
 	} else {
 		tid = parseInt(query["tid"][0])
 	}
-
 	if len(query["ip"]) == 0 {
 		ip = "0.0.0.0"
 	} else {
 		ip = query["ip"][0]
 	}
-
-	reports := dao.ReportList(tid, ip)
-	views("views/report.html", reports, w)
+	reports := dao.GetReportAll(tid, ip)
+	c.SetData(reports)
+	c.SetPath("views/report.html")
+	views(c)
 }
 
-func statusList(w http.ResponseWriter, req *http.Request) {
-	status := dao.StateReport()
-	views("views/status.html", status, w)
+func statusList(c Context) {
+	c.SetData(dao.StateReport())
+	c.SetPath("views/status.html")
+	views(c)
 }
 
-func indexList(w http.ResponseWriter, req *http.Request) {
-	index := dao.IndexReport()
-	views("views/index.html", index, w)
+func indexList(c Context) {
+	c.SetData(dao.IndexReport())
+	c.SetPath("views/index.html")
+	views(c)
 }

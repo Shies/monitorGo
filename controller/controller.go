@@ -1,17 +1,58 @@
 package controller
 
 import (
-	"fmt"
-	"html/template"
+	_ "fmt"
 	"log"
-	"monitorGo/model"
-	"net/http"
 	"strconv"
+	"net/http"
+	"html/template"
+
+    "monitorGo/model"
 )
 
 var (
 	dao = model.New()
 )
+
+type Context interface {
+    Request() *http.Request
+    Response() http.ResponseWriter
+    SetPath(string)
+    SetData(interface{})
+    GetPath() string
+    GetData() interface{}
+}
+
+type implContext struct {
+    req  *http.Request
+    res  http.ResponseWriter
+    path string
+    data interface{}
+}
+
+func (ic *implContext) Request() *http.Request {
+    return ic.req
+}
+
+func (ic *implContext) Response() http.ResponseWriter {
+    return ic.res
+}
+
+func (ic *implContext) SetPath(path string) {
+    ic.path = path
+}
+
+func (ic *implContext) SetData(data interface{}) {
+    ic.data = data
+}
+
+func (ic *implContext) GetPath() string {
+	return ic.path
+}
+
+func (ic *implContext) GetData() interface{} {
+	return ic.data
+}
 
 func parseInt(value string) int64 {
 	intval, err := strconv.ParseInt(value, 10, 64)
@@ -31,21 +72,20 @@ func atoi(value string) (intval int) {
 	return intval
 }
 
-func views(path string, data interface{}, w http.ResponseWriter) error {
-	t, err := template.ParseFiles("./" + path)
+func views(c Context) error {
+	t, err := template.ParseFiles("./" + c.GetPath())
 	if err != nil {
-		fmt.Println(err)
-		return nil
+		panic(err)
 	}
 
-	return t.Execute(w, data)
+	return t.Execute(c.Response(), c.GetData())
 }
 
 func Register() bool {
 	setHttpHandle()
 
 	// 设置监听端口
-	err := http.ListenAndServe("127.0.0.1:8888", nil)
+	err := http.ListenAndServe(":8888", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
@@ -53,22 +93,33 @@ func Register() bool {
 	return true
 }
 
-func setHttpHandle() {
-	http.HandleFunc("/userTpl", userList)
-	http.HandleFunc("/saveUser", saveUser)
-	http.HandleFunc("/groupTpl", groupList)
-	http.HandleFunc("/saveGroup", saveGroup)
-	http.HandleFunc("/confTpl", confList)
-	http.HandleFunc("/saveConf", saveConf)
-	http.HandleFunc("/noteTpl", noteList)
-	http.HandleFunc("/saveNote", saveNote)
-	http.HandleFunc("/ipTpl", ipList)
-	http.HandleFunc("/saveIP", saveIP)
-	http.HandleFunc("/taskTpl", taskList)
-	http.HandleFunc("/saveTask", saveTask)
-	http.HandleFunc("/reportTpl", reportList)
-	http.HandleFunc("/faultTpl", faultList)
-	http.HandleFunc("/statusTpl", statusList)
-	http.HandleFunc("/indexTpl", indexList)
-	return
+func setHttpHandle() error {
+    var (
+        err error
+        router = make(map[string]interface{})
+    )
+    router["userTpl"] = userList
+    router["saveUser"] = saveUser
+    router["groupTpl"] = groupList
+    router["saveGroup"] = saveGroup
+    router["confTpl"] = confList
+    router["saveConf"] = saveConf
+    router["noticeTpl"] = noticeList
+    router["saveNotice"] = saveNotice
+    router["ipTpl"] = ipList
+    router["saveIP"] = saveIP
+    router["taskTpl"] = taskList
+    router["saveTask"] = saveTask
+    router["reportTpl"] = reportList
+    router["faultTpl"] = faultList
+    router["statusTpl"] = statusList
+    router["indexTpl"] = indexList
+    for route, function := range router {
+        f := function.(func(Context))
+        http.HandleFunc("/" + route, func(w http.ResponseWriter, req *http.Request) {
+        	f(&implContext{req: req, res: w})
+        })
+    }
+
+	return err
 }

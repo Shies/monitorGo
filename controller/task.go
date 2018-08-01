@@ -2,16 +2,18 @@ package controller
 
 import (
 	"fmt"
-	"html/template"
-	"monitorGo/model"
-	"net/http"
 	"strings"
+	"net/http"
+	"html/template"
+
+	"monitorGo/model"
 )
 
-func taskList(w http.ResponseWriter, req *http.Request) {
+func taskList(c Context) {
 	var (
 		param string
 		sql   string
+		req = c.Request()
 	)
 	query := req.URL.Query()
 	if len(query["name"]) == 0 {
@@ -24,26 +26,29 @@ func taskList(w http.ResponseWriter, req *http.Request) {
 		param = "'%" + query["name"][0] + "%'"
 		sql = model.TASK_BY_NAME
 	}
-
-	task := dao.TaskList(sql, param)
-	views("views/task.html", task, w)
+	task := dao.GetTask(sql, param)
+	c.SetData(task)
+	c.SetPath("views/task.html")
+	views(c)
 }
 
-func saveTask(w http.ResponseWriter, req *http.Request) {
+func saveTask(c Context) {
+	var (
+		req = c.Request()
+		res = c.Response()
+	)
 	req.ParseForm()
 	for k, v := range req.Form {
 		req.Form[k][0] = template.HTMLEscapeString(v[0])
 	}
-
 	taskItem := getTaskParam(req)
 	if taskItem.Name == "" {
 		fmt.Println("invalid params")
 		return
 	}
-
 	dao.SaveTask(taskItem)
-	w.Header().Add("Location", "/taskList")
-	w.WriteHeader(302)
+	res.Header().Add("Location", "/taskTpl")
+	res.WriteHeader(302)
 }
 
 func getTaskParam(req *http.Request) *model.TaskItem {
