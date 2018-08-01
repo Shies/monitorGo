@@ -8,7 +8,7 @@ func reportList(c Context) {
 	)
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
-		tid = dao.GetReportTid()
+		tid = dao.ReportTid()
 	} else {
 		tid = parseInt(query["tid"][0])
 	}
@@ -17,7 +17,7 @@ func reportList(c Context) {
 	} else {
 		ip = query["ip"][0]
 	}
-	reports := dao.GetReportAll(tid, ip)
+	reports := dao.ReportList(tid, ip)
 	c.SetData(reports)
 	c.SetPath("views/report.html")
 	views(c)

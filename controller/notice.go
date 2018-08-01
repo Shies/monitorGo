@@ -21,8 +21,8 @@ func noticeList(c Context) {
 		param = parseInt(query["tid"][0])
 	}
 	resp := make(map[string]interface{})
-	resp["Notice"] = dao.GetSendList(sql, param)
-	resp["Task"] = dao.GetTask(model.TASK_BY_ALL, "1")
+	resp["Notice"] = dao.SendList(sql, param)
+	resp["Task"] = dao.TaskList(model.TASK_BY_ALL, "1")
 	c.SetData(resp)
 	c.SetPath("views/notice.html")
 	views(c)

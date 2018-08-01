@@ -12,8 +12,8 @@ import (
 
 func userList(c Context) {
 	resp := make(map[string]interface{})
-	resp["User"] = dao.GetUser()
-	resp["Group"] = dao.GetGroup()
+	resp["User"] = dao.UserList()
+	resp["Group"] = dao.GroupList()
 	c.SetData(resp)
 	c.SetPath("views/user.html")
 	views(c)

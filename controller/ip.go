@@ -21,8 +21,8 @@ func ipList(c Context) {
 		param = parseInt(query["tid"][0])
 	}
 	resp := make(map[string]interface{})
-	resp["Task"] = dao.GetTask(model.TASK_BY_ALL, "1")
-	resp["Ips"] = dao.GetTaskIP(sql, param)
+	resp["Task"] = dao.TaskList(model.TASK_BY_ALL, "1")
+	resp["Ips"] = dao.TaskIP(sql, param)
 	c.SetData(resp)
 	c.SetPath("views/ip.html")
 	views(c)

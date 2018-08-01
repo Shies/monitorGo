@@ -6,7 +6,7 @@ import (
 )
 
 func confList(c Context) {
-	c.SetData(dao.GetConf())
+	c.SetData(dao.ConfList())
 	c.SetPath("views/conf.html")
 	views(c)
 }

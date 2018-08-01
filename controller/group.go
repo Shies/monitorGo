@@ -9,7 +9,7 @@ import (
 )
 
 func groupList(c Context) {
-	c.SetData(dao.GetGroup())
+	c.SetData(dao.GroupList())
 	c.SetPath("views/group.html")
 	views(c)
 }
