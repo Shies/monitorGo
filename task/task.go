@@ -50,7 +50,7 @@ func (m *Mail) Send(to, subject, body, mailtype string) error {
 	return err
 }
 
-func httpDo(method string, requestUrl string, params string, header map[string]string) string {
+func httpDo(method string, requestUrl string, params string, header map[string]string) (string, error) {
 	client := &http.Client{}
 	var (
 		req *http.Request
@@ -62,7 +62,7 @@ func httpDo(method string, requestUrl string, params string, header map[string]s
 		req, err = http.NewRequest("POST", requestUrl, strings.NewReader(params))
 	}
 	if err != nil {
-		return ""
+		return "", err
 	}
 	if header != nil {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -71,16 +71,16 @@ func httpDo(method string, requestUrl string, params string, header map[string]s
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
+	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	defer resp.Body.Close()
 
-	return string(body)
+	return string(body), nil
 }
 
 // parse url and set it's ip
@@ -129,30 +129,32 @@ func SendMails(emails []string, msg string) bool {
 }
 
 func Request(t *model.TaskItem, ips []*model.TaskIP) bool {
-	var wg sync.WaitGroup
+	var (
+		wg sync.WaitGroup
+		header = make(map[string]string)
+	)
 	// time.Sleep(time.Duration(t.Frequency) * time.Minute)
 	if ips == nil {
-		resp := httpDo(t.Method, t.Url, t.Params, nil)
-		if resp == "" {
-			fmt.Printf("%s\n", t.Url)
+		_, err := httpDo(t.Method, t.Url, t.Params, nil)
+		if err != nil {
+			fmt.Printf("%v\n", err)
 			return false
 		}
 	}
 
-	header := make(map[string]string)
-	for _, v := range ips {
-		urlData := parseUrl(t.Url, v.IP)
-		part := strings.Split(urlData["header"], ":")
-		header["host"] = part[1]
-		wg.Add(1)
-		go func() {
-			defer wg.Done();
-			resp := httpDo(t.Method, urlData["url"], t.Params, header)
-			if resp == "" {
+	wg.Add(1)
+	go func() {
+		defer wg.Done();
+		for _, v := range ips {
+			urlData := parseUrl(t.Url, v.IP)
+			part := strings.Split(urlData["header"], ":")
+			header["host"] = part[1]
+			_, err := httpDo(t.Method, urlData["url"], t.Params, header)
+			if err != nil {
 				fmt.Printf("%s\n", urlData["url"])
+				return
 			}
-		}()
-	}
-
+		}
+	}()
 	return true
 }
