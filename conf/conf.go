@@ -9,10 +9,16 @@ var (
 )
 
 type Config struct {
-	Db *Db `toml:"db"`
+	Db  *Db  `toml:"db"`
+	Log *Log `toml:"log"`
 }
 
-//DB
+// Log
+type Log struct {
+	Dir	string	`toml:"dir"`
+}
+
+// DB
 type Db struct {
 	Addr     string `toml:"addr"`
 	Port     string `toml:"port"`
