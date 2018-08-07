@@ -11,7 +11,7 @@ import (
 
 	"monitorGo/conf"
 	"monitorGo/model"
-)
+	)
 
 var (
 	dao = model.New()
@@ -134,14 +134,13 @@ func SendMails(emails []string, msg string) bool {
 type Event struct {
 	recv chan []string
 	done chan bool
-	sync sync.WaitGroup
+	sync *sync.WaitGroup
 }
 
 func (e *Event) Accept(ips []*model.TaskIP) {
 	e.recv = make(chan []string, len(ips))
+	defer e.sync.Done()
 	if ips != nil {
-		defer e.sync.Done()
-		defer e.Done()
 		var ipstr = []string{}
 		for _, v := range ips {
 			ipstr = append(ipstr, v.IP)
@@ -150,6 +149,31 @@ func (e *Event) Accept(ips []*model.TaskIP) {
 		case e.recv <- ipstr:
 		default:
 			log.Println("the chan is full(" + strings.Join(ipstr, ",") + ")")
+		}
+	}
+	return
+}
+
+func (e *Event) Receive(t *model.TaskItem) {
+	var header = make(map[string]string)
+	// defer e.sync.Done()
+	for {
+		select {
+		case ipstr := <-e.recv:
+			defer e.Close()
+			for _, ip := range ipstr {
+				log.Println("start:" + t.Url)
+				urlData := parseUrl(t.Url, ip)
+				part := strings.Split(urlData["header"], ":")
+				header["host"] = part[1]
+				if _, err := httpDo(t.Method, urlData["url"], t.Params, header); err != nil {
+					log.Printf("%v\n", urlData)
+				}
+			}
+			e.Done()
+		case <-e.done:
+			log.Println("task done")
+			return
 		}
 	}
 	return
@@ -166,35 +190,15 @@ func (e *Event) Close() {
 }
 
 func Request(t *model.TaskItem, ips []*model.TaskIP) {
-	var (
-		header = make(map[string]string)
-		e = new(Event)
-	)
+	e := &Event{
+		sync: new(sync.WaitGroup),
+	}
 	// time.Sleep(time.Duration(3) * time.Second)
 	if ips != nil {
 		e.sync.Add(1)
 		go e.Accept(ips)
 		e.sync.Wait()
-		go func() {
-			defer e.sync.Done()
-			for {
-				select {
-				case ipstr := <-e.recv:
-					for _, ip := range ipstr {
-						log.Println("start:" + t.Url)
-						urlData := parseUrl(t.Url, ip)
-						part := strings.Split(urlData["header"], ":")
-						header["host"] = part[1]
-						if _, err := httpDo(t.Method, urlData["url"], t.Params, header); err != nil {
-							log.Printf("%v\n", urlData)
-						}
-					}
-				case <-e.done:
-					log.Println("task done")
-					break
-				}
-			}
-		}()
+		go e.Receive(t)
 	} else {
 		go func() {
 			if _, err := httpDo(t.Method, t.Url, t.Params, nil); err != nil {
