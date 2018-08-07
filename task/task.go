@@ -1,18 +1,21 @@
 package task
 
 import (
-	"fmt"
 	"io/ioutil"
-	"monitorGo/model"
 	"net/http"
 	"net/smtp"
 	"net/url"
 	"strings"
 	"sync"
+	"log"
+
+	"monitorGo/conf"
+	"monitorGo/model"
 )
 
 var (
 	dao = model.New()
+	_ = conf.Logger(conf.Conf.Log.Dir)
 )
 
 const (
@@ -87,7 +90,7 @@ func httpDo(method string, requestUrl string, params string, header map[string]s
 func parseUrl(requestUrl string, ip string) map[string]string {
 	urlData, err := url.Parse(requestUrl)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return nil
 	}
 
@@ -109,52 +112,96 @@ func parseUrl(requestUrl string, ip string) map[string]string {
 }
 
 func SendMails(emails []string, msg string) bool {
-	mail := &Mail{}
+	mail := new(Mail)
 
-	conf := dao.ConfList()
-	globalEmails := strings.Split(conf["GlobalEmails"], ",")
+	config := dao.ConfList()
+	globalEmails := strings.Split(config["GlobalEmails"], ",")
 	for _, email := range globalEmails {
 		emails = append(emails, email)
 	}
 
-	fmt.Printf("%v\n", emails)
+	log.Printf("%v\n", emails)
 	for _, email := range emails {
 		err := mail.Send(email, "告警邮件", msg, "normal")
 		if err != nil {
-			fmt.Printf("%v\n", err)
+			log.Printf("%v\n", err)
 		}
 	}
 
 	return true
 }
 
-func Request(t *model.TaskItem, ips []*model.TaskIP) bool {
-	var (
-		wg sync.WaitGroup
-		header = make(map[string]string)
-	)
-	// time.Sleep(time.Duration(t.Frequency) * time.Minute)
-	if ips == nil {
-		_, err := httpDo(t.Method, t.Url, t.Params, nil)
-		if err != nil {
-			fmt.Printf("%v\n", err)
-			return false
+type Event struct {
+	recv chan []string
+	done chan bool
+	sync sync.WaitGroup
+}
+
+func (e *Event) Accept(ips []*model.TaskIP) {
+	e.recv = make(chan []string, len(ips))
+	if ips != nil {
+		defer e.sync.Done()
+		defer e.Done()
+		var ipstr = []string{}
+		for _, v := range ips {
+			ipstr = append(ipstr, v.IP)
+		}
+		select {
+		case e.recv <- ipstr:
+		default:
+			log.Println("the chan is full(" + strings.Join(ipstr, ",") + ")")
 		}
 	}
+	return
+}
 
-	wg.Add(1)
-	go func() {
-		defer wg.Done();
-		for _, v := range ips {
-			urlData := parseUrl(t.Url, v.IP)
-			part := strings.Split(urlData["header"], ":")
-			header["host"] = part[1]
-			_, err := httpDo(t.Method, urlData["url"], t.Params, header)
-			if err != nil {
-				fmt.Printf("%s\n", urlData["url"])
+func (e *Event) Done() {
+	e.done = make(chan bool, 1)
+	e.done <- true
+}
+
+func (e *Event) Close() {
+	close(e.recv)
+	close(e.done)
+}
+
+func Request(t *model.TaskItem, ips []*model.TaskIP) {
+	var (
+		header = make(map[string]string)
+		e = new(Event)
+	)
+	// time.Sleep(time.Duration(3) * time.Second)
+	if ips != nil {
+		e.sync.Add(1)
+		go e.Accept(ips)
+		e.sync.Wait()
+		go func() {
+			defer e.sync.Done()
+			for {
+				select {
+				case ipstr := <-e.recv:
+					for _, ip := range ipstr {
+						log.Println("start:" + t.Url)
+						urlData := parseUrl(t.Url, ip)
+						part := strings.Split(urlData["header"], ":")
+						header["host"] = part[1]
+						if _, err := httpDo(t.Method, urlData["url"], t.Params, header); err != nil {
+							log.Printf("%v\n", urlData)
+						}
+					}
+				case <-e.done:
+					log.Println("task done")
+					break
+				}
+			}
+		}()
+	} else {
+		go func() {
+			if _, err := httpDo(t.Method, t.Url, t.Params, nil); err != nil {
+				log.Printf("%v\n", err)
 				return
 			}
-		}
-	}()
-	return true
+		}()
+	}
+	return
 }

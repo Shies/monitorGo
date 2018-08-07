@@ -1,9 +1,9 @@
 [db]
   addr = "127.0.0.1"
   port = "3306"
-  username = "test"
-  password = "test"
+  username = "root"
+  password = "229616801"
   db_name = "http_monitor"
 
 [xlog]
-  dir = "/data/log/monitorGo/"
+  dir = "/tmp/go"

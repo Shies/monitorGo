@@ -1,6 +1,11 @@
 package conf
 
 import (
+	"flag"
+	"os"
+	"fmt"
+	"log"
+
 	"github.com/BurntSushi/toml"
 )
 
@@ -10,7 +15,7 @@ var (
 
 type Config struct {
 	Db  *Db  `toml:"db"`
-	Log *Log `toml:"log"`
+	Log *Log `toml:"xlog"`
 }
 
 // Log
@@ -31,3 +36,16 @@ func ParseConfig() (err error){
 	 _, err = toml.DecodeFile("./config.example.toml", &Conf)
 	return
 }
+
+func Logger(dir string) (err error) {
+	flag.Parse()
+	outfile, err := os.OpenFile(dir, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
+	if err != nil {
+		fmt.Println(*outfile, "open failed")
+		os.Exit(1)
+	}
+	log.SetOutput(outfile)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
+	return
+}
+

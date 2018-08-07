@@ -8,6 +8,8 @@ import (
 	"html/template"
 
     "monitorGo/model"
+	"monitorGo/conf"
+	"monitorGo/service"
 )
 
 var (
@@ -82,6 +84,8 @@ func views(c Context) error {
 }
 
 func Register() bool {
+	conf.ParseConfig()
+	service.New(&conf.Conf)
 	setHttpHandle()
 
 	// 设置监听端口
