@@ -13,8 +13,7 @@ import (
 	"monitorGo/model"
 	dao2 "monitorGo/dao"
 	"fmt"
-	"time"
-)
+	)
 
 var (
 	dao = dao2.New()
@@ -158,21 +157,27 @@ func (e *Event) Producer(ips []*model.TaskIP) {
 
 func (e *Event) Consumer(t *model.TaskItem) {
 	defer e.sync.Done()
+	var sQuit, tQuit = false, false
 	for {
 		select {
 		case ipstr, ok := <-e.send:
 			if !ok {
+				e.Close()
 				return
 			}
 			e.Handle(t, ipstr)
-		case te, ok := <-e.test:
-			fmt.Println(ok, te)
-		case <-time.After(time.Duration(3) * time.Second):
-			e.Done()
+			sQuit = true
+		case te := <-e.test:
+			fmt.Println(te)
+			tQuit = true
 		case <-e.done:
 			e.Close()
 			log.Println("done")
 			return
+		default:
+			if sQuit && tQuit {
+				e.Done()
+			}
 		}
 	}
 	return
@@ -192,6 +197,7 @@ func (e *Event) Handle(t *model.TaskItem, ipstr []string) {
 	return
 }
 
+
 func (e *Event) Tester() {
 	e.test <- "hello world"
 }
@@ -207,9 +213,9 @@ func (e *Event) Close() {
 
 func Request(t *model.TaskItem, ips []*model.TaskIP) {
 	e := &Event{
+		test: make(chan string),
 		send: make(chan []string, len(ips)),
 		done: make(chan bool, 1),
-		test: make(chan string),
 		sync: new(sync.WaitGroup),
 	}
 
