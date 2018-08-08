@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
 	"html/template"
 
@@ -22,8 +21,7 @@ func saveGroup(c Context) {
 	req.ParseForm()
 	group := getGroupParams(req)
 	if group.Name == "" {
-		fmt.Println("invalid params")
-		return
+		panic("invalid params")
 	}
 	dao.SaveGroup(group)
 	res.Header().Add("Location", "/groupTpl")

@@ -3,6 +3,7 @@ package controller
 import (
 	"html/template"
 
+	dao2 "monitorGo/dao"
 	"monitorGo/model"
 )
 
@@ -15,14 +16,14 @@ func noticeList(c Context) {
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
 		param = 999
-		sql = model.NOTICE_BY_ALL
+		sql = dao2.NOTICE_BY_ALL
 	} else {
-		sql = model.NOITCE_BY_TID
+		sql = dao2.NOITCE_BY_TID
 		param = parseInt(query["tid"][0])
 	}
 	resp := make(map[string]interface{})
 	resp["Notice"] = dao.SendList(sql, param)
-	resp["Task"] = dao.TaskList(model.TASK_BY_ALL, "1")
+	resp["Task"] = dao.TaskList(dao2.TASK_BY_ALL, "1")
 	c.SetData(resp)
 	c.SetPath("views/notice.html")
 	views(c)

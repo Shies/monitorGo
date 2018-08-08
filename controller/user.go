@@ -1,8 +1,7 @@
 package controller
 
 import (
-	"fmt"
-	"time"
+		"time"
 	"strconv"
 	"net/http"
 	"html/template"
@@ -30,8 +29,7 @@ func saveUser(c Context) {
 	}
 	user := getUserParams(req)
 	if user.Name == "" || user.LoginName == "" {
-		fmt.Println("invalid params")
-		return
+		panic("invalid params")
 	}
 	dao.SaveUser(user)
 	res.Header().Add("Location", "/userTpl")

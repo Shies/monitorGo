@@ -11,10 +11,13 @@ import (
 
 	"monitorGo/conf"
 	"monitorGo/model"
-	)
+	dao2 "monitorGo/dao"
+	"fmt"
+	"time"
+)
 
 var (
-	dao = model.New()
+	dao = dao2.New()
 	_ = conf.Logger(conf.Conf.Log.Dir)
 )
 
@@ -132,21 +135,20 @@ func SendMails(emails []string, msg string) bool {
 }
 
 type Event struct {
-	recv chan []string
+	test chan string
+	send chan []string
 	done chan bool
 	sync *sync.WaitGroup
 }
 
-func (e *Event) Accept(ips []*model.TaskIP) {
-	e.recv = make(chan []string, len(ips))
-	defer e.sync.Done()
+func (e *Event) Producer(ips []*model.TaskIP) {
 	if ips != nil {
 		var ipstr = []string{}
 		for _, v := range ips {
 			ipstr = append(ipstr, v.IP)
 		}
 		select {
-		case e.recv <- ipstr:
+		case e.send <- ipstr:
 		default:
 			log.Println("the chan is full(" + strings.Join(ipstr, ",") + ")")
 		}
@@ -154,52 +156,71 @@ func (e *Event) Accept(ips []*model.TaskIP) {
 	return
 }
 
-func (e *Event) Receive(t *model.TaskItem) {
-	var header = make(map[string]string)
-	// defer e.sync.Done()
+func (e *Event) Consumer(t *model.TaskItem) {
+	defer e.sync.Done()
 	for {
 		select {
-		case ipstr := <-e.recv:
-			defer e.Close()
-			for _, ip := range ipstr {
-				log.Println("start:" + t.Url)
-				urlData := parseUrl(t.Url, ip)
-				part := strings.Split(urlData["header"], ":")
-				header["host"] = part[1]
-				if _, err := httpDo(t.Method, urlData["url"], t.Params, header); err != nil {
-					log.Printf("%v\n", urlData)
-				}
+		case ipstr, ok := <-e.send:
+			if !ok {
+				return
 			}
+			e.Handle(t, ipstr)
+		case te, ok := <-e.test:
+			fmt.Println(ok, te)
+		case <-time.After(time.Duration(3) * time.Second):
 			e.Done()
 		case <-e.done:
-			log.Println("task done")
+			e.Close()
+			log.Println("done")
 			return
 		}
 	}
 	return
 }
 
+func (e *Event) Handle(t *model.TaskItem, ipstr []string) {
+	var header = make(map[string]string)
+	for _, ip := range ipstr {
+		log.Println("start:" + t.Url)
+		urlData := parseUrl(t.Url, ip)
+		part := strings.Split(urlData["header"], ":")
+		header["host"] = part[1]
+		if _, err := httpDo(t.Method, urlData["url"], t.Params, header); err != nil {
+			log.Printf("%v\n", urlData)
+		}
+	}
+	return
+}
+
+func (e *Event) Tester() {
+	e.test <- "hello world"
+}
+
 func (e *Event) Done() {
-	e.done = make(chan bool, 1)
 	e.done <- true
 }
 
 func (e *Event) Close() {
-	close(e.recv)
+	close(e.send)
 	close(e.done)
 }
 
 func Request(t *model.TaskItem, ips []*model.TaskIP) {
 	e := &Event{
+		send: make(chan []string, len(ips)),
+		done: make(chan bool, 1),
+		test: make(chan string),
 		sync: new(sync.WaitGroup),
 	}
-	// time.Sleep(time.Duration(3) * time.Second)
+
 	if ips != nil {
 		e.sync.Add(1)
-		go e.Accept(ips)
-		e.sync.Wait()
-		go e.Receive(t)
-	} else {
+		go e.Consumer(t)
+		go e.Producer(ips)
+		go e.Tester()
+	}
+
+	if ips == nil {
 		go func() {
 			if _, err := httpDo(t.Method, t.Url, t.Params, nil); err != nil {
 				log.Printf("%v\n", err)

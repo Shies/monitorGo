@@ -1,11 +1,11 @@
 package controller
 
 import (
-	"fmt"
 	"strings"
 	"net/http"
 	"html/template"
 
+	dao2 "monitorGo/dao"
 	"monitorGo/model"
 )
 
@@ -18,13 +18,13 @@ func taskList(c Context) {
 	query := req.URL.Query()
 	if len(query["name"]) == 0 {
 		param = "1"
-		sql = model.TASK_BY_ALL
+		sql = dao2.TASK_BY_ALL
 	} else if strings.Contains(query["name"][0], "http") {
 		param = "'%" + query["name"][0] + "%'"
-		sql = model.TASK_BY_URL
+		sql = dao2.TASK_BY_URL
 	} else {
 		param = "'%" + query["name"][0] + "%'"
-		sql = model.TASK_BY_NAME
+		sql = dao2.TASK_BY_NAME
 	}
 	task := dao.TaskList(sql, param)
 	c.SetData(task)
@@ -43,8 +43,7 @@ func saveTask(c Context) {
 	}
 	taskItem := getTaskParam(req)
 	if taskItem.Name == "" {
-		fmt.Println("invalid params")
-		return
+		panic("invalid params")
 	}
 	dao.SaveTask(taskItem)
 	res.Header().Add("Location", "/taskTpl")

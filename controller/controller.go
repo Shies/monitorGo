@@ -7,13 +7,13 @@ import (
 	"net/http"
 	"html/template"
 
-    "monitorGo/model"
 	"monitorGo/conf"
 	"monitorGo/service"
+	dao2 "monitorGo/dao"
 )
 
 var (
-	dao = model.New()
+	dao = dao2.New()
 )
 
 type Context interface {

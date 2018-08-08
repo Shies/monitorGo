@@ -3,6 +3,7 @@ package controller
 import (
 	"html/template"
 
+	dao2 "monitorGo/dao"
 	"monitorGo/model"
 )
 
@@ -15,13 +16,13 @@ func ipList(c Context) {
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
 		param = 999
-		sql = model.IPS_BY_ALL
+		sql = dao2.IPS_BY_ALL
 	} else {
-		sql = model.IPS_BY_TID
+		sql = dao2.IPS_BY_TID
 		param = parseInt(query["tid"][0])
 	}
 	resp := make(map[string]interface{})
-	resp["Task"] = dao.TaskList(model.TASK_BY_ALL, "1")
+	resp["Task"] = dao.TaskList(dao2.TASK_BY_ALL, "1")
 	resp["Ips"] = dao.TaskIP(sql, param)
 	c.SetData(resp)
 	c.SetPath("views/ip.html")
