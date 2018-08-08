@@ -8,7 +8,7 @@ import (
 )
 
 func groupList(c Context) {
-	c.SetData(dao.GroupList())
+	c.SetData(srv.GroupList())
 	c.SetPath("views/group.html")
 	views(c)
 }
@@ -23,7 +23,7 @@ func saveGroup(c Context) {
 	if group.Name == "" {
 		panic("invalid params")
 	}
-	dao.SaveGroup(group)
+	srv.SaveGroup(group)
 	res.Header().Add("Location", "/groupTpl")
 	res.WriteHeader(302)
 }

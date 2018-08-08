@@ -7,13 +7,12 @@ import (
 	"net/http"
 	"html/template"
 
-	"monitorGo/conf"
 	"monitorGo/service"
-	dao2 "monitorGo/dao"
+	"monitorGo/conf"
 )
 
 var (
-	dao = dao2.New()
+	srv *service.Service
 )
 
 type Context interface {
@@ -83,9 +82,13 @@ func views(c Context) error {
 	return t.Execute(c.Response(), c.GetData())
 }
 
-func Register() bool {
+func initService() {
 	conf.ParseConfig()
-	service.New(&conf.Conf)
+	srv = service.New(&conf.Conf)
+}
+
+func Register() bool {
+	initService()
 	setHttpHandle()
 
 	// 设置监听端口

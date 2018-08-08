@@ -6,7 +6,7 @@ import (
 )
 
 func confList(c Context) {
-	c.SetData(dao.ConfList())
+	c.SetData(srv.ConfList())
 	c.SetPath("views/conf.html")
 	views(c)
 }
@@ -19,7 +19,7 @@ func saveConf(c Context) {
 	req.ParseForm()
 	for key, val := range req.Form {
 		_val := template.HTMLEscapeString(strings.Join(val, ""))
-		dao.SaveConf(key, _val)
+		srv.SaveConf(key, _val)
 	}
 	res.Header().Add("Location", "/confTpl")
 	res.WriteHeader(302)

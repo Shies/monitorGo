@@ -8,7 +8,7 @@ func faultList(c Context) {
 	)
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
-		tid = dao.FaultTid()
+		tid = srv.FaultTid()
 	} else {
 		tid = parseInt(query["tid"][0])
 	}
@@ -16,7 +16,7 @@ func faultList(c Context) {
 	if len(query["ip"]) != 0 {
 	    ip = query["ip"][0]
 	}
-	c.SetData(dao.FaultList(tid, ip))
+	c.SetData(srv.FaultList(tid, ip))
 	c.SetPath("views/fault.html")
 	views(c)
 }

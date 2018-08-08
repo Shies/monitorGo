@@ -8,15 +8,16 @@ import (
 	"strings"
 	"sync"
 	"log"
+	"fmt"
 
 	"monitorGo/conf"
 	"monitorGo/model"
-	dao2 "monitorGo/dao"
-	"fmt"
-	)
+	"monitorGo/dao"
+)
+
 
 var (
-	dao = dao2.New()
+	d = dao.New()
 	_ = conf.Logger(conf.Conf.Log.Dir)
 )
 
@@ -116,7 +117,7 @@ func parseUrl(requestUrl string, ip string) map[string]string {
 func SendMails(emails []string, msg string) bool {
 	mail := new(Mail)
 
-	config := dao.ConfList()
+	config := d.ConfList()
 	globalEmails := strings.Split(config["GlobalEmails"], ",")
 	for _, email := range globalEmails {
 		emails = append(emails, email)

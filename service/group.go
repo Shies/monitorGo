@@ -1,9 +1,15 @@
 package service
 
-func (s *Service) GroupList() {
+import (
+	"monitorGo/model"
+)
+
+func (s *Service) GroupList() (group []*model.Group) {
+	group = s.dao.GroupList()
 	return
 }
 
-func (s *Service) SaveGroup() {
+func (s *Service) SaveGroup(group *model.Group) {
+	s.dao.SaveGroup(group)
 	return
 }

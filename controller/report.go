@@ -8,7 +8,7 @@ func reportList(c Context) {
 	)
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
-		tid = dao.ReportTid()
+		tid = srv.ReportTid()
 	} else {
 		tid = parseInt(query["tid"][0])
 	}
@@ -17,20 +17,20 @@ func reportList(c Context) {
 	} else {
 		ip = query["ip"][0]
 	}
-	reports := dao.ReportList(tid, ip)
+	reports := srv.ReportList(tid, ip)
 	c.SetData(reports)
 	c.SetPath("views/report.html")
 	views(c)
 }
 
 func statusList(c Context) {
-	c.SetData(dao.StateReport())
+	c.SetData(srv.StateReport())
 	c.SetPath("views/status.html")
 	views(c)
 }
 
 func indexList(c Context) {
-	c.SetData(dao.IndexReport())
+	c.SetData(srv.IndexReport())
 	c.SetPath("views/index.html")
 	views(c)
 }

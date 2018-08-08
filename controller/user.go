@@ -1,7 +1,7 @@
 package controller
 
 import (
-		"time"
+	"time"
 	"strconv"
 	"net/http"
 	"html/template"
@@ -11,8 +11,8 @@ import (
 
 func userList(c Context) {
 	resp := make(map[string]interface{})
-	resp["User"] = dao.UserList()
-	resp["Group"] = dao.GroupList()
+	resp["User"] = srv.UserList()
+	resp["Group"] = srv.GroupList()
 	c.SetData(resp)
 	c.SetPath("views/user.html")
 	views(c)
@@ -31,7 +31,7 @@ func saveUser(c Context) {
 	if user.Name == "" || user.LoginName == "" {
 		panic("invalid params")
 	}
-	dao.SaveUser(user)
+	srv.SaveUser(user)
 	res.Header().Add("Location", "/userTpl")
 	res.WriteHeader(302)
 }

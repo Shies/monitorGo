@@ -3,7 +3,7 @@ package controller
 import (
 	"html/template"
 
-	dao2 "monitorGo/dao"
+	"monitorGo/dao"
 	"monitorGo/model"
 )
 
@@ -16,14 +16,14 @@ func noticeList(c Context) {
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
 		param = 999
-		sql = dao2.NOTICE_BY_ALL
+		sql = dao.NOTICE_BY_ALL
 	} else {
-		sql = dao2.NOITCE_BY_TID
+		sql = dao.NOITCE_BY_TID
 		param = parseInt(query["tid"][0])
 	}
 	resp := make(map[string]interface{})
-	resp["Notice"] = dao.SendList(sql, param)
-	resp["Task"] = dao.TaskList(dao2.TASK_BY_ALL, "1")
+	resp["Notice"] = srv.SendList(sql, param)
+	resp["Task"] = srv.TaskList(dao.TASK_BY_ALL, "1")
 	c.SetData(resp)
 	c.SetPath("views/notice.html")
 	views(c)
@@ -43,7 +43,7 @@ func saveNotice(c Context) {
 		Content:  req.PostFormValue("newcontent"),
 		Tid:      parseInt(req.PostFormValue("newtid")),
 	}
-	dao.SaveNotice(notice)
+	srv.SaveNotice(notice)
 	// 跳转
 	res.Header().Add("Location", "/noticeTpl")
 	res.WriteHeader(302)
