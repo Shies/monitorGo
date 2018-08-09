@@ -13,6 +13,7 @@ import (
 	"monitorGo/conf"
 	"monitorGo/model"
 	"monitorGo/dao"
+	"time"
 )
 
 
@@ -141,7 +142,12 @@ type Event struct {
 	sync *sync.WaitGroup
 }
 
+func (e *Event) Tester() {
+	e.test <- "hello world"
+}
+
 func (e *Event) Producer(ips []*model.TaskIP) {
+	defer e.sync.Done()
 	if ips != nil {
 		var ipstr = []string{}
 		for _, v := range ips {
@@ -153,12 +159,9 @@ func (e *Event) Producer(ips []*model.TaskIP) {
 			log.Println("the chan is full(" + strings.Join(ipstr, ",") + ")")
 		}
 	}
-	return
 }
 
 func (e *Event) Consumer(t *model.TaskItem) {
-	defer e.sync.Done()
-	var sQuit, tQuit = false, false
 	for {
 		select {
 		case ipstr, ok := <-e.send:
@@ -166,49 +169,34 @@ func (e *Event) Consumer(t *model.TaskItem) {
 				e.Close()
 				return
 			}
-			e.Handle(t, ipstr)
-			sQuit = true
+			var header = make(map[string]string)
+			for _, ip := range ipstr {
+				log.Println("start:" + t.Url)
+				urlData := parseUrl(t.Url, ip)
+				part := strings.Split(urlData["header"], ":")
+				header["host"] = part[1]
+				if _, err := httpDo(t.Method, urlData["url"], t.Params, header); err != nil {
+					log.Printf("%v\n", urlData)
+				}
+			}
 		case te := <-e.test:
 			fmt.Println(te)
-			tQuit = true
 		case <-e.done:
 			e.Close()
 			log.Println("done")
 			return
-		default:
-			if sQuit && tQuit {
-				e.Done()
-			}
 		}
 	}
-	return
-}
-
-func (e *Event) Handle(t *model.TaskItem, ipstr []string) {
-	var header = make(map[string]string)
-	for _, ip := range ipstr {
-		log.Println("start:" + t.Url)
-		urlData := parseUrl(t.Url, ip)
-		part := strings.Split(urlData["header"], ":")
-		header["host"] = part[1]
-		if _, err := httpDo(t.Method, urlData["url"], t.Params, header); err != nil {
-			log.Printf("%v\n", urlData)
-		}
-	}
-	return
-}
-
-
-func (e *Event) Tester() {
-	e.test <- "hello world"
 }
 
 func (e *Event) Done() {
+	time.Sleep(time.Duration(3) * time.Second)
 	e.done <- true
 }
 
 func (e *Event) Close() {
 	close(e.send)
+	close(e.test)
 	close(e.done)
 }
 
@@ -221,13 +209,13 @@ func Request(t *model.TaskItem, ips []*model.TaskIP) {
 	}
 
 	if ips != nil {
-		e.sync.Add(1)
 		go e.Consumer(t)
+
+		e.sync.Add(1)
 		go e.Producer(ips)
 		go e.Tester()
-	}
-
-	if ips == nil {
+		go e.Done()
+	} else {
 		go func() {
 			if _, err := httpDo(t.Method, t.Url, t.Params, nil); err != nil {
 				log.Printf("%v\n", err)
