@@ -8,9 +8,7 @@ import (
 	"strings"
 	"sync"
 	"log"
-	"fmt"
-
-	"monitorGo/conf"
+		"monitorGo/conf"
 	"monitorGo/model"
 	"monitorGo/dao"
 	"time"
@@ -136,35 +134,34 @@ func SendMails(emails []string, msg string) bool {
 }
 
 type Event struct {
-	test chan string
-	send chan []string
-	done chan bool
-	sync *sync.WaitGroup
+	Test chan string
+	Send chan []string
+	Quit chan bool
+	Sync *sync.WaitGroup
 }
 
 func (e *Event) Tester() {
-	e.test <- "hello world"
+	e.Test <- "hello world"
 }
 
 func (e *Event) Producer(ips []*model.TaskIP) {
-	defer e.sync.Done()
-	if ips != nil {
-		var ipstr = []string{}
-		for _, v := range ips {
-			ipstr = append(ipstr, v.IP)
-		}
-		select {
-		case e.send <- ipstr:
-		default:
-			log.Println("the chan is full(" + strings.Join(ipstr, ",") + ")")
-		}
+	defer e.Sync.Done()
+	var ipstr = []string{}
+	for _, v := range ips {
+		ipstr = append(ipstr, v.IP)
 	}
+	select {
+	case e.Send <- ipstr:
+	default:
+		log.Println("the chan is full(" + strings.Join(ipstr, ",") + ")")
+	}
+	return
 }
 
 func (e *Event) Consumer(t *model.TaskItem) {
 	for {
 		select {
-		case ipstr, ok := <-e.send:
+		case ipstr, ok := <-e.Send:
 			if !ok {
 				e.Close()
 				return
@@ -177,11 +174,12 @@ func (e *Event) Consumer(t *model.TaskItem) {
 				header["host"] = part[1]
 				if _, err := httpDo(t.Method, urlData["url"], t.Params, header); err != nil {
 					log.Printf("%v\n", urlData)
+					continue
 				}
 			}
-		case te := <-e.test:
-			fmt.Println(te)
-		case <-e.done:
+		case welcome := <-e.Test:
+			log.Println(welcome)
+		case <-e.Quit:
 			e.Close()
 			log.Println("done")
 			return
@@ -191,37 +189,41 @@ func (e *Event) Consumer(t *model.TaskItem) {
 
 func (e *Event) Done() {
 	time.Sleep(time.Duration(3) * time.Second)
-	e.done <- true
+	e.Quit <- true
 }
 
 func (e *Event) Close() {
-	close(e.send)
-	close(e.test)
-	close(e.done)
+	close(e.Send)
+	close(e.Test)
+	close(e.Quit)
 }
 
 func Request(t *model.TaskItem, ips []*model.TaskIP) {
 	e := &Event{
-		test: make(chan string),
-		send: make(chan []string, len(ips)),
-		done: make(chan bool, 1),
-		sync: new(sync.WaitGroup),
+		Test: make(chan string),
+		Send: make(chan []string, len(ips)),
+		Quit: make(chan bool, 1),
+		Sync: new(sync.WaitGroup),
 	}
-
 	if ips != nil {
+
 		go e.Consumer(t)
 
-		e.sync.Add(1)
+		e.Sync.Add(1)
 		go e.Producer(ips)
+
 		go e.Tester()
 		go e.Done()
+
 	} else {
+
 		go func() {
 			if _, err := httpDo(t.Method, t.Url, t.Params, nil); err != nil {
 				log.Printf("%v\n", err)
 				return
 			}
 		}()
+
 	}
 	return
 }
