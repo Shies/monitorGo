@@ -7,16 +7,18 @@ import (
 	"net/url"
 	"strings"
 	"sync"
-	"log"
-		"monitorGo/conf"
-	"monitorGo/model"
-	"monitorGo/dao"
 	"time"
+	"log"
+
+	"monitorGo/dao"
+	"monitorGo/conf"
+	"monitorGo/model"
 )
 
 
 var (
-	d = dao.New()
+	_ = conf.ParseConfig()
+	d = dao.New(&conf.Conf)
 	_ = conf.Logger(conf.Conf.Log.Dir)
 )
 

@@ -9,13 +9,18 @@ import (
 )
 
 type Dao struct {
+	c 	*conf.Config
 	db  *sql.DB
 	err error
 }
 
-func New() *Dao {
-	dao := &Dao{}
-	dao.db, dao.err = getConn()
+func New(c *conf.Config) *Dao {
+	dao := &Dao{
+		c: c,
+		err: nil,
+		db: nil,
+	}
+	dao.db, dao.err = getConn(c.Db)
 	if dao.err != nil {
 		panic(dao.err)
 	}
@@ -23,9 +28,8 @@ func New() *Dao {
 	return dao
 }
 
-func getConn() (*sql.DB, error) {
-	conf.ParseConfig()
-	connStr := createConnStr(conf.Conf.Db.Username, conf.Conf.Db.Password, conf.Conf.Db.Addr, conf.Conf.Db.Port, conf.Conf.Db.Db_name)
+func getConn(db *conf.Db) (*sql.DB, error) {
+	connStr := createConnStr(db.Username, db.Password, db.Addr, db.Port, db.Db_name)
 	return sql.Open("mysql", connStr)
 }
 

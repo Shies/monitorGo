@@ -17,7 +17,7 @@ type Service struct {
 func New(c *conf.Config) (s *Service) {
 	s = &Service{
 		c:         c,
-		dao:       dao.New(),
+		dao:       dao.New(c),
 	}
 
 	go s.asyncTask();

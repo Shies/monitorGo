@@ -9,7 +9,7 @@ import (
 
 	"monitorGo/service"
 	"monitorGo/conf"
-)
+	)
 
 var (
 	srv *service.Service
@@ -83,11 +83,11 @@ func views(c Context) error {
 }
 
 func initService() {
-	conf.ParseConfig()
 	srv = service.New(&conf.Conf)
 }
 
 func Register() bool {
+	conf.ParseConfig()
 	initService()
 	setHttpHandle()
 
