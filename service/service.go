@@ -49,13 +49,11 @@ func (s *Service) loadTask() {
 
 func (s *Service) Req(t *model.TaskItem, ips []*model.TaskIP) {
 	if ips != nil {
+
 		s.Sync.Add(1)
 		go s.Consumer(t)
-
 		go s.Producer(ips)
-		go s.Tester()
 
-		go s.Done()
 	} else {
 
 		go func() {
@@ -64,6 +62,7 @@ func (s *Service) Req(t *model.TaskItem, ips []*model.TaskIP) {
 				return
 			}
 		}()
+
 	}
 	return
 }
@@ -82,6 +81,9 @@ func (s *Service) Producer(ips []*model.TaskIP) {
 	default:
 		log.Println("the chan is full(" + strings.Join(ipstr, ",") + ")")
 	}
+
+	go s.Tester()
+	go s.Done()
 	return
 }
 
@@ -91,6 +93,7 @@ func (s *Service) Consumer(t *model.TaskItem) {
 		select {
 		case ipstr, ok := <-s.Send:
 			if !ok {
+				s.Close()
 				return
 			}
 			var header = make(map[string]string)
