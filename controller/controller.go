@@ -9,7 +9,7 @@ import (
 
 	"monitorGo/service"
 	"monitorGo/conf"
-	)
+)
 
 var (
 	srv *service.Service
@@ -64,7 +64,7 @@ func parseInt(value string) int64 {
 	return intval
 }
 
-func atoi(value string) (intval int) {
+func atoi(value string) int {
 	intval, err := strconv.Atoi(value)
 	if err != nil {
 		intval = 0

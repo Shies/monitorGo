@@ -6,13 +6,10 @@ import (
 	"net/smtp"
 	"net/url"
 	"strings"
-	"sync"
-	"time"
 	"log"
 
 	"monitorGo/dao"
 	"monitorGo/conf"
-	"monitorGo/model"
 )
 
 
@@ -57,7 +54,28 @@ func (m *Mail) Send(to, subject, body, mailtype string) error {
 	return err
 }
 
-func httpDo(method string, requestUrl string, params string, header map[string]string) (string, error) {
+func SendMails(emails []string, msg string) error {
+	var (
+		err error
+		mail = new(Mail)
+	)
+	config := d.ConfList()
+	globalEmails := strings.Split(config["GlobalEmails"], ",")
+	for _, email := range globalEmails {
+		emails = append(emails, email)
+	}
+
+	log.Printf("%v\n", emails)
+	for _, email := range emails {
+		err = mail.Send(email, "告警邮件", msg, "normal")
+		if err != nil {
+			log.Printf("%v\n", err)
+		}
+	}
+	return err
+}
+
+func HttpDo(method string, requestUrl string, params string, header map[string]string) (string, error) {
 	client := &http.Client{}
 	var (
 		req *http.Request
@@ -91,17 +109,17 @@ func httpDo(method string, requestUrl string, params string, header map[string]s
 }
 
 // parse url and set it's ip
-func parseUrl(requestUrl string, ip string) map[string]string {
+func ParseUrl(requestUrl string, ip string) map[string]string {
+	var (
+		path string
+		ret  = make(map[string]string)
+	)
+
 	urlData, err := url.Parse(requestUrl)
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
-
-	var (
-		path string
-		ret  = make(map[string]string)
-	)
 	if urlData.Path != "" {
 		path = urlData.Path
 	}
@@ -113,119 +131,4 @@ func parseUrl(requestUrl string, ip string) map[string]string {
 	ret["header"] = "Host:" + urlData.Host
 
 	return ret
-}
-
-func SendMails(emails []string, msg string) bool {
-	mail := new(Mail)
-
-	config := d.ConfList()
-	globalEmails := strings.Split(config["GlobalEmails"], ",")
-	for _, email := range globalEmails {
-		emails = append(emails, email)
-	}
-
-	log.Printf("%v\n", emails)
-	for _, email := range emails {
-		err := mail.Send(email, "告警邮件", msg, "normal")
-		if err != nil {
-			log.Printf("%v\n", err)
-		}
-	}
-
-	return true
-}
-
-type Event struct {
-	Test chan string
-	Send chan []string
-	Quit chan bool
-	Sync *sync.WaitGroup
-}
-
-func (e *Event) Tester() {
-	e.Test <- "hello world"
-}
-
-func (e *Event) Producer(ips []*model.TaskIP) {
-	defer e.Sync.Done()
-	var ipstr = []string{}
-	for _, v := range ips {
-		ipstr = append(ipstr, v.IP)
-	}
-	select {
-	case e.Send <- ipstr:
-	default:
-		log.Println("the chan is full(" + strings.Join(ipstr, ",") + ")")
-	}
-	return
-}
-
-func (e *Event) Consumer(t *model.TaskItem) {
-	for {
-		select {
-		case ipstr, ok := <-e.Send:
-			if !ok {
-				e.Close()
-				return
-			}
-			var header = make(map[string]string)
-			for _, ip := range ipstr {
-				log.Println("start:" + t.Url)
-				urlData := parseUrl(t.Url, ip)
-				part := strings.Split(urlData["header"], ":")
-				header["host"] = part[1]
-				if _, err := httpDo(t.Method, urlData["url"], t.Params, header); err != nil {
-					log.Printf("%v\n", urlData)
-					continue
-				}
-			}
-		case welcome := <-e.Test:
-			log.Println(welcome)
-		case <-e.Quit:
-			e.Close()
-			log.Println("done")
-			return
-		}
-	}
-}
-
-func (e *Event) Done() {
-	time.Sleep(time.Duration(3) * time.Second)
-	e.Quit <- true
-}
-
-func (e *Event) Close() {
-	close(e.Send)
-	close(e.Test)
-	close(e.Quit)
-}
-
-func Request(t *model.TaskItem, ips []*model.TaskIP) {
-	e := &Event{
-		Test: make(chan string),
-		Send: make(chan []string, len(ips)),
-		Quit: make(chan bool, 1),
-		Sync: new(sync.WaitGroup),
-	}
-	if ips != nil {
-
-		go e.Consumer(t)
-
-		e.Sync.Add(1)
-		go e.Producer(ips)
-
-		go e.Tester()
-		go e.Done()
-
-	} else {
-
-		go func() {
-			if _, err := httpDo(t.Method, t.Url, t.Params, nil); err != nil {
-				log.Printf("%v\n", err)
-				return
-			}
-		}()
-
-	}
-	return
 }
