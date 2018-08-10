@@ -38,8 +38,8 @@ func New(c *conf.Config) (s *Service) {
 
 func (s *Service) loadTask() {
 	for {
-		tasks := s.dao.TaskList(dao.TASK_BY_ALL, "1")
-		ips := s.dao.TaskIP(dao.IPS_BY_ALL, 1)
+		tasks, _ := s.dao.TaskList(dao.TASK_BY_ALL, "1")
+		ips, _ := s.dao.TaskIP(dao.IPS_BY_ALL, 1)
 		for _, v := range tasks {
 			s.Req(v, ips[v.Id])
 		}

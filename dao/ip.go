@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	xsql "database/sql"
 
 	_ "github.com/go-sql-driver/mysql"
 	"monitorGo/model"
-)
+	)
 
 const (
 	IPS_BY_ALL       = "SELECT tid, ip FROM taskip WHERE ?"
@@ -16,29 +17,31 @@ const (
 	IPS_COUNT_BY_TID = "SELECT COUNT(*) AS total FROM taskip WHERE tid = ?"
 )
 
-func (d *Dao) TaskIP(query string, param int64) map[int64][]*model.TaskIP {
-	rows, err := d.db.Query(query, param)
+func (d *Dao) TaskIP(query string, param int64) (ips map[int64][]*model.TaskIP, err error) {
+	var (
+		rows *xsql.Rows
+	)
+	rows, err = d.db.Query(query, param)
 	if err != nil {
 		fmt.Println("db query failed:", err.Error())
-		return nil
+		return
 	}
 
-	var ips = make(map[int64][]*model.TaskIP)
+	defer rows.Close()
+	ips = make(map[int64][]*model.TaskIP)
 	for rows.Next() {
-		defer rows.Close()
 		li := &model.TaskIP{}
-		err := rows.Scan(&li.Tid, &li.IP)
+		err = rows.Scan(&li.Tid, &li.IP)
 		if err != nil {
 			fmt.Println("Scan failed:", err.Error())
-			break
+			return
 		}
 		ips[li.Tid] = append(ips[li.Tid], li)
 	}
-
-	return ips
+	return
 }
 
-func (d *Dao) SaveIP(IP *model.TaskIP) {
+func (d *Dao) SaveIP(IP *model.TaskIP) (err error) {
 	var parts []string
 	if strings.Contains(IP.IP, ",") {
 		parts = strings.Split(IP.IP, ",")
@@ -47,6 +50,7 @@ func (d *Dao) SaveIP(IP *model.TaskIP) {
 	sql, err := d.db.Prepare(_IPS_INSERT)
 	if err != nil {
 		log.Fatal(err)
+		return
 	}
 
 	defer sql.Close()
@@ -57,4 +61,5 @@ func (d *Dao) SaveIP(IP *model.TaskIP) {
 	} else {
 		sql.Exec(IP.Tid, IP.IP)
 	}
+	return
 }

@@ -9,6 +9,7 @@ import (
 
 	"monitorGo/service"
 	"monitorGo/conf"
+	"context"
 )
 
 var (
@@ -16,6 +17,7 @@ var (
 )
 
 type Context interface {
+	context.Context
     Request() *http.Request
     Response() http.ResponseWriter
     SetPath(string)
@@ -25,6 +27,7 @@ type Context interface {
 }
 
 type implContext struct {
+	context.Context
     req  *http.Request
     res  http.ResponseWriter
     path string

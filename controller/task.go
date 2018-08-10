@@ -26,7 +26,7 @@ func taskList(c Context) {
 		param = "'%" + query["name"][0] + "%'"
 		sql = dao.TASK_BY_NAME
 	}
-	task := srv.TaskList(sql, param)
+	task, _ := srv.TaskList(sql, param)
 	c.SetData(task)
 	c.SetPath("views/task.html")
 	views(c)

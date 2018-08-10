@@ -6,7 +6,8 @@ import (
 )
 
 func confList(c Context) {
-	c.SetData(srv.ConfList())
+	conf, _ := srv.ConfList()
+	c.SetData(conf)
 	c.SetPath("views/conf.html")
 	views(c)
 }

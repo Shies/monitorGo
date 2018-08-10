@@ -10,8 +10,8 @@ import (
 func ipList(c Context) {
 	var (
 		req = c.Request()
-		param int64
 		sql   string
+		param int64
 	)
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
@@ -21,10 +21,13 @@ func ipList(c Context) {
 		sql = dao.IPS_BY_TID
 		param = parseInt(query["tid"][0])
 	}
-	resp := make(map[string]interface{})
-	resp["Task"] = srv.TaskList(dao.TASK_BY_ALL, "1")
-	resp["Ips"] = srv.TaskIP(sql, param)
-	c.SetData(resp)
+	tasks, _ := srv.TaskList(dao.TASK_BY_ALL, "1")
+	ips, _ := srv.TaskIP(sql, param)
+	res := map[string]interface{}{
+		"Task": tasks,
+		"Ips": ips,
+	}
+	c.SetData(res)
 	c.SetPath("views/ip.html")
 	views(c)
 }

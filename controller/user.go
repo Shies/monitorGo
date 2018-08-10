@@ -10,10 +10,13 @@ import (
 )
 
 func userList(c Context) {
-	resp := make(map[string]interface{})
-	resp["User"] = srv.UserList()
-	resp["Group"] = srv.GroupList()
-	c.SetData(resp)
+	user, _ := srv.UserList()
+	group, _ := srv.GroupList()
+	res := map[string]interface{}{
+		"User": user,
+		"Group": group,
+	}
+	c.SetData(res)
 	c.SetPath("views/user.html")
 	views(c)
 }

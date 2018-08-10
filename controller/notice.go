@@ -9,9 +9,9 @@ import (
 
 func noticeList(c Context) {
 	var (
-		param int64
-		sql   string
 		req = c.Request()
+		sql   string
+		param int64
 	)
 	query := req.URL.Query()
 	if len(query["tid"]) == 0 {
@@ -21,10 +21,13 @@ func noticeList(c Context) {
 		sql = dao.NOITCE_BY_TID
 		param = parseInt(query["tid"][0])
 	}
-	resp := make(map[string]interface{})
-	resp["Notice"] = srv.SendList(sql, param)
-	resp["Task"] = srv.TaskList(dao.TASK_BY_ALL, "1")
-	c.SetData(resp)
+	send, _ := srv.SendList(sql, param)
+	task, _ := srv.TaskList(dao.TASK_BY_ALL, "1")
+	res := map[string]interface{}{
+		"Notice": send,
+		"Task": task,
+	}
+	c.SetData(res)
 	c.SetPath("views/notice.html")
 	views(c)
 }

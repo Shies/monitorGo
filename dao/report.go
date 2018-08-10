@@ -17,7 +17,7 @@ const (
 	_REPORT_BY_ALL_TID = "SELECT * FROM report WHERE tid = ? ORDER BY id DESC LIMIT ?"
 )
 
-func (d *Dao) ReportList(tid int64, ip string) (reports []*model.Report) {
+func (d *Dao) ReportList(tid int64, ip string) (reports []*model.Report, err error) {
 	var (
 		query string
 		rows  *sql.Rows
@@ -30,8 +30,8 @@ func (d *Dao) ReportList(tid int64, ip string) (reports []*model.Report) {
 		rows, _ = d.db.Query(query, tid)
 	}
 
+	defer rows.Close()
 	for rows.Next() {
-		defer rows.Close()
 		li := &model.Report{}
 		err := rows.Scan(&li.Id, &li.Time, &li.RespTime, &li.RespCode, &li.Size, &li.Tid, &li.IP)
 		if err != nil {
@@ -39,8 +39,7 @@ func (d *Dao) ReportList(tid int64, ip string) (reports []*model.Report) {
 		}
 		reports = append(reports, li)
 	}
-
-	return reports
+	return
 }
 
 func (d *Dao) ReportTid() (tid int64) {
@@ -120,7 +119,7 @@ func (d *Dao) assign(ti *model.TaskItem, r *model.Report) (li *model.Status) {
 }
 
 func (d *Dao) StateReport() []*model.Status {
-	tasks := d.TaskList(TASK_BY_ALL, "1")
+	tasks, _ := d.TaskList(TASK_BY_ALL, "1")
 	if tasks == nil {
 		fmt.Println("tasks for nil")
 		return nil
@@ -159,7 +158,7 @@ func (d *Dao) indexAssign(v *model.TaskItem, now time.Time) (li *model.Index) {
 	}
 
 	var faulttime int64
-	faults := d.FaultList(v.Id, "0.0.0.0")
+	faults, _ := d.FaultList(v.Id, "0.0.0.0")
 	for _, val := range faults {
 		timediff := convertTime(val.LastCheckTime) - convertTime(val.StartTime) + int64(60*(v.Frequency))
 		faulttime = int64(faulttime) + int64(timediff)
@@ -175,7 +174,7 @@ func (d *Dao) indexAssign(v *model.TaskItem, now time.Time) (li *model.Index) {
 }
 
 func (d *Dao) IndexReport() []*model.Index {
-	tasks := d.TaskList(TASK_BY_ALL, "1")
+	tasks, _ := d.TaskList(TASK_BY_ALL, "1")
 	if tasks == nil {
 		fmt.Println("tasks for nil")
 		return nil

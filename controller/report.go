@@ -17,7 +17,7 @@ func reportList(c Context) {
 	} else {
 		ip = query["ip"][0]
 	}
-	reports := srv.ReportList(tid, ip)
+	reports, _ := srv.ReportList(tid, ip)
 	c.SetData(reports)
 	c.SetPath("views/report.html")
 	views(c)

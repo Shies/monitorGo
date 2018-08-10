@@ -8,7 +8,8 @@ import (
 )
 
 func groupList(c Context) {
-	c.SetData(srv.GroupList())
+	groups, _ := srv.GroupList()
+	c.SetData(groups)
 	c.SetPath("views/group.html")
 	views(c)
 }

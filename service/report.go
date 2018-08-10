@@ -4,8 +4,8 @@ import (
 	"monitorGo/model"
 )
 
-func (s *Service) ReportList(tid int64, ip string) (reports []*model.Report) {
-	reports = s.dao.ReportList(tid, ip)
+func (s *Service) ReportList(tid int64, ip string) (reports []*model.Report, err error) {
+	reports, err = s.dao.ReportList(tid, ip)
 	return
 }
 

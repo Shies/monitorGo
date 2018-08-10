@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	xsql "database/sql"
 
 	"monitorGo/model"
 )
@@ -11,32 +12,32 @@ import (
 const (
 	NOTICE_BY_ALL  = "SELECT sendtype, content, tid FROM sendlist WHERE ?"
 	NOITCE_BY_TID  = "SELECT sendtype, content, tid FROM sendlist WHERE tid = ?"
-	_NOTICE_INSERT = "INSERT INTO sendlist(sendtype, content, tid) VALUES(?, ?, ?)"
+	_NOTICE_INSERT = "INSERT INTO sendlist(`sendtype`, `content`, `tid`) VALUES(?, ?, ?)"
 )
 
-func (d *Dao) SendList(sql string, param int64) map[int64][]*model.Notice {
-	rows, err := d.db.Query(sql, param)
+func (d *Dao) SendList(sql string, param int64) (send map[int64][]*model.Notice, err error) {
+	var rows *xsql.Rows
+	rows, err = d.db.Query(sql, param)
 	if err != nil {
 		fmt.Println("db query failed:", err.Error())
-		return nil
+		return
 	}
 
-	notice := make(map[int64][]*model.Notice)
+	defer rows.Close()
+	send = make(map[int64][]*model.Notice)
 	for rows.Next() {
 		li := &model.Notice{}
-		err := rows.Scan(&li.SendType, &li.Content, &li.Tid)
-		defer rows.Close()
+		err = rows.Scan(&li.SendType, &li.Content, &li.Tid)
 		if err != nil {
 			fmt.Println("_return:", err.Error())
-			break
+			return
 		}
-		notice[li.Tid] = append(notice[li.Tid], li)
+		send[li.Tid] = append(send[li.Tid], li)
 	}
-
-	return notice
+	return
 }
 
-func (d *Dao) SaveNotice(notice *model.Notice) bool {
+func (d *Dao) SaveNotice(notice *model.Notice) (err error) {
 	var parts []string
 	if strings.Contains(notice.Content, ",") {
 		parts = strings.Split(notice.Content, ",")
@@ -45,6 +46,7 @@ func (d *Dao) SaveNotice(notice *model.Notice) bool {
 	sql, err := d.db.Prepare(_NOTICE_INSERT)
 	if err != nil {
 		log.Fatal(err)
+		return
 	}
 
 	defer sql.Close()
@@ -55,5 +57,5 @@ func (d *Dao) SaveNotice(notice *model.Notice) bool {
 	} else {
 		sql.Exec(notice.SendType, notice.Content, notice.Tid)
 	}
-	return true
+	return
 }

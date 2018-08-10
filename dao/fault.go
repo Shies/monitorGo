@@ -13,7 +13,7 @@ const (
 	_FAULT_BY_ONE = "SELECT tid FROM fault WHERE 1 ORDER BY id DESC LIMIT 1"
 )
 
-func (d *Dao) FaultList(tid int64, ip string) (faults []*model.Fault) {
+func (d *Dao) FaultList(tid int64, ip string) (faults []*model.Fault, err error) {
 	var (
 		query string
 		rows  *sql.Rows
@@ -29,22 +29,21 @@ func (d *Dao) FaultList(tid int64, ip string) (faults []*model.Fault) {
 	defer rows.Close()
 	for rows.Next() {
 		li := &model.Fault{}
-		err := rows.Scan(&li.Id, &li.StartTime, &li.LastCheckTime, &li.RespCode, &li.OutOfSize, &li.Tid, &li.IP, &li.IsRemind)
+		err = rows.Scan(&li.Id, &li.StartTime, &li.LastCheckTime, &li.RespCode, &li.OutOfSize, &li.Tid, &li.IP, &li.IsRemind)
 		if err != nil {
 			log.Fatal(err)
+			return
 		}
 		faults = append(faults, li)
 	}
-
-	return faults
+	return
 }
 
-func (d *Dao) FaultTid() (tid int64) {
-	err := d.db.QueryRow(_FAULT_BY_ONE).Scan(&tid)
+func (d *Dao) FaultTid() (tid int64, err error) {
+	err = d.db.QueryRow(_FAULT_BY_ONE).Scan(&tid)
 	if err != nil {
 		fmt.Println("DB query failed:", err.Error())
-		return 0
+		return 0, err
 	}
-
-	return tid
+	return
 }

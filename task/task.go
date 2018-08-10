@@ -59,8 +59,8 @@ func SendMails(emails []string, msg string) error {
 		err error
 		mail = new(Mail)
 	)
-	config := d.ConfList()
-	globalEmails := strings.Split(config["GlobalEmails"], ",")
+	confs, _ := d.ConfList()
+	globalEmails := strings.Split(confs["GlobalEmails"], ",")
 	for _, email := range globalEmails {
 		emails = append(emails, email)
 	}
