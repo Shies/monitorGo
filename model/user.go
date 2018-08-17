@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type User struct {
 	Id            int64
 	LoginName     string
@@ -9,5 +11,5 @@ type User struct {
 	EditGroupTask int
 	EditGroupUser int
 	Gid           int
-	LastLogin     string
+	LastLogin     time.Time
 }

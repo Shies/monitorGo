@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 // task model
 type TaskItem struct {
 	Id         int64
@@ -15,7 +17,7 @@ type TaskItem struct {
 	Goodcode   int
 	Sizerange  string
 	Status     int
-	Createtime string
+	Createtime time.Time
 	Uid        int
 	Gid        int
 	Respbody   string

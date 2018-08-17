@@ -7,6 +7,7 @@ import (
 
 	"monitorGo/model"
 	"monitorGo/dao"
+	"time"
 )
 
 func taskList(c Context) {
@@ -66,7 +67,7 @@ func getTaskParam(req *http.Request) *model.TaskItem {
 	taskItem.Uid = 1
 	taskItem.Gid = 1
 	taskItem.Sizerange = req.PostFormValue("sizerange")
-	taskItem.Createtime = req.PostFormValue("createtime")
+	taskItem.Createtime = time.Now()
 	taskItem.Respbody = req.PostFormValue("respbody")
 
 	return taskItem

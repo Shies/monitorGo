@@ -4,21 +4,27 @@ import (
 	"monitorGo/conf"
 	"monitorGo/dao"
 	"monitorGo/task"
-	"time"
 	"monitorGo/model"
+
+	"time"
 	"sync"
 	"log"
 	"strings"
-	)
+)
+
+const (
+	_sharding = 10240
+)
 
 // Service biz service def.
 type Service struct {
 	c    *conf.Config
 	dao	 *dao.Dao
+	Wait *sync.WaitGroup
+	Once sync.Once
 	Test chan string
-	Send chan []string
 	Quit chan bool
-	Sync *sync.WaitGroup
+	Send chan map[int64][]*model.TaskIP
 }
 
 // New new a Service and return.
@@ -26,43 +32,47 @@ func New(c *conf.Config) (s *Service) {
 	s = &Service{
 		c:    c,
 		dao:  dao.New(c),
+		Wait: new(sync.WaitGroup),
 		Test: make(chan string),
-		Send: make(chan []string, 10),
 		Quit: make(chan bool, 1),
-		Sync: new(sync.WaitGroup),
+		Send: make(chan map[int64][]*model.TaskIP, _sharding),
 	}
 
-	go s.loadTask();
+	go s.loadTaskTick();
 	return s
 }
 
-func (s *Service) loadTask() {
+func (s *Service) loadTaskTick() {
 	for {
 		tasks, _ := s.dao.TaskList(dao.TASK_BY_ALL, "1")
 		ips, _ := s.dao.TaskIP(dao.IPS_BY_ALL, 1)
-		for _, v := range tasks {
-			s.Req(v, ips[v.Id])
+		if tasks != nil || ips != nil {
+			s.R(tasks, ips)
 		}
-		time.Sleep(time.Duration(60) * time.Second)
+		time.Sleep(time.Duration(10) * time.Second)
 	}
 }
 
-func (s *Service) Req(t *model.TaskItem, ips []*model.TaskIP) {
+func (s *Service) R(tis []*model.TaskItem, ips map[int64][]*model.TaskIP) {
 	if ips != nil {
-
-		s.Sync.Add(1)
-		go s.Consumer(t)
+		s.Wait.Add(2)
+		go s.Consumer(tis)
 		go s.Producer(ips)
+		s.Wait.Wait()
 
+		s.Once.Do(func() {
+			tis = nil
+			ips = nil
+		})
 	} else {
-
 		go func() {
-			if _, err := task.HttpDo(t.Method, t.Url, t.Params, nil); err != nil {
-				log.Printf("%v\n", err)
-				return
+			for _, t := range tis {
+				if _, err := task.HttpDo(t.Method, t.Url, t.Params, nil); err != nil {
+					log.Printf("%v\n", err)
+					return
+				}
 			}
 		}()
-
 	}
 	return
 }
@@ -71,15 +81,13 @@ func (s *Service) Tester() {
 	s.Test <- "hello world"
 }
 
-func (s *Service) Producer(ips []*model.TaskIP) {
-	var ipstr = []string{}
-	for _, v := range ips {
-		ipstr = append(ipstr, v.IP)
-	}
+func (s *Service) Producer(ips map[int64][]*model.TaskIP) {
+	defer s.Wait.Done()
+
 	select {
-	case s.Send <- ipstr:
+	case s.Send <- ips:
 	default:
-		log.Println("the chan is full(" + strings.Join(ipstr, ",") + ")")
+		log.Printf("%s%v", "the chan is full", ips)
 	}
 
 	go s.Tester()
@@ -87,24 +95,25 @@ func (s *Service) Producer(ips []*model.TaskIP) {
 	return
 }
 
-func (s *Service) Consumer(t *model.TaskItem) {
-	defer s.Sync.Done()
+func (s *Service) Consumer(tis []*model.TaskItem) {
+	defer s.Wait.Done()
 	for {
 		select {
-		case ipstr, ok := <-s.Send:
+		case ips, ok := <-s.Send:
 			if !ok {
-				s.Close()
 				return
 			}
-			var header = make(map[string]string)
-			for _, ip := range ipstr {
-				log.Println("start:" + t.Url)
-				urlData := task.ParseUrl(t.Url, ip)
-				part := strings.Split(urlData["header"], ":")
-				header["host"] = part[1]
-				if _, err := task.HttpDo(t.Method, urlData["url"], t.Params, header); err != nil {
-					log.Printf("%v\n", urlData)
-					continue
+			for _, t := range tis {
+				var header = make(map[string]string)
+				for _, ip := range ips[t.Id] {
+					log.Println("start:" + t.Url)
+					urlData := task.ParseUrl(t.Url, ip.IP)
+					part := strings.Split(urlData["header"], ":")
+					header["host"] = part[1]
+					if _, err := task.HttpDo(t.Method, urlData["url"], t.Params, header); err != nil {
+						log.Printf("%v\n", urlData)
+						continue
+					}
 				}
 			}
 		case welcome := <-s.Test:

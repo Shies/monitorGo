@@ -1,8 +1,10 @@
 package model
 
+import "time"
+
 type Report struct {
 	Id       int64
-	Time     string
+	Time     time.Time
 	RespTime float64
 	RespCode int
 	Size     int

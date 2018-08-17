@@ -34,10 +34,12 @@ func getConn(db *conf.Db) (*sql.DB, error) {
 }
 
 func createConnStr(username string, password string, addr string, port string, db_name string) string {
-	return username + ":" + password + "@tcp(" + addr + ":" + port + ")/" + db_name
+	return username + ":" + password + "@tcp(" + addr + ":" + port + ")/" + db_name + "?parseTime=true"
 }
 
-func convertTime(t string) int64 {
-	tm2, _ := time.Parse("2006-01-02 15:04:05", t)
-	return tm2.Unix()
+func convertTime(t time.Time) int64 {
+	// tm2, _ := time.Parse("2006-01-02 15:04:05", t.String())
+	// return tm2.Unix()
+	return t.Unix()
 }
+

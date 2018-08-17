@@ -2,7 +2,6 @@ package controller
 
 import (
 	"time"
-	"strconv"
 	"net/http"
 	"html/template"
 
@@ -48,7 +47,7 @@ func getUserParams(req *http.Request) (user *model.User) {
 	user.EditGroupTask = atoi(req.PostFormValue("edit_group_task"))
 	user.EditGroupUser = atoi(req.PostFormValue("edit_group_user"))
 	user.Gid = atoi(req.PostFormValue("gid"))
-	user.LastLogin = strconv.FormatInt(time.Now().UnixNano(), 10)
+	user.LastLogin = time.Now()
 
 	return user
 }
