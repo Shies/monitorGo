@@ -101,6 +101,7 @@ func (s *Service) Consumer(tis []*model.TaskItem) {
 		select {
 		case ips, ok := <-s.Send:
 			if !ok {
+				s.Close()
 				return
 			}
 			for _, t := range tis {
