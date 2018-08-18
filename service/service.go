@@ -1,15 +1,15 @@
 package service
 
 import (
-	"monitorGo/conf"
-	"monitorGo/dao"
-	"monitorGo/task"
-	"monitorGo/model"
-
 	"time"
 	"sync"
 	"log"
 	"strings"
+
+	"monitorGo/conf"
+	"monitorGo/dao"
+	"monitorGo/task"
+	"monitorGo/model"
 )
 
 
@@ -56,10 +56,10 @@ func (s *Service) R(tis []*model.TaskItem, ips map[int64][]*model.TaskIP) {
 		diff []*model.TaskItem
 	)
 	for _, t := range tis {
-		if _, ok := ips[t.Id]; !ok {
-			diff = append(diff, t)
-		} else {
+		if _, ok := ips[t.Id]; ok {
 			tmp[t.Id] = t
+		} else {
+			diff = append(diff, t)
 		}
 	}
 
@@ -90,16 +90,17 @@ func (s *Service) Tester() {
 
 func (s *Service) Producer(ips map[int64][]*model.TaskIP) {
 	defer s.Wait.Done()
-	for tid, ip := range ips {
-		var tmp = make(chan []*model.TaskIP, len(ip))
+	for tid, v := range ips {
+		var tmp = make(chan []*model.TaskIP, len(v))
 		select {
-		case tmp <- ip:
+		case tmp <- v:
 			s.Send[tid] = tmp
 		default:
-			log.Printf("%s%v", "the chan is full", ip)
+			for _, ip := range v {
+				log.Printf("%s", "the chan is full(" + ip.IP + ")")
+			}
 		}
 	}
-
 	go s.Tester()
 	return
 }
