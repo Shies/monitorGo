@@ -101,7 +101,6 @@ func (s *Service) Producer(ips map[int64][]*model.TaskIP) {
 	}
 
 	go s.Tester()
-	go s.Done()
 	return
 }
 
@@ -119,7 +118,6 @@ func (s *Service) Consumer(tis map[int64]*model.TaskItem) {
 				t := tis[tid]
 				delete(s.Send, tid)
 				var header = make(map[string]string)
-LOOP:
 				for _, ip := range ips {
 					log.Println("start:" + t.Url)
 					urlData := task.ParseUrl(t.Url, ip.IP)
@@ -127,7 +125,7 @@ LOOP:
 					header["host"] = part[1]
 					if _, err := task.HttpDo(t.Method, urlData["url"], t.Params, header); err != nil {
 						log.Printf("%v\n", urlData)
-						continue LOOP
+						continue
 					}
 				}
 			}
@@ -135,6 +133,8 @@ LOOP:
 		select {
 		case welcome := <-s.Test:
 			log.Println(welcome)
+		case <-time.After(time.Duration(3) * time.Second):
+			s.Done()
 		case <-s.Quit:
 			log.Println("done")
 			return
@@ -143,7 +143,6 @@ LOOP:
 }
 
 func (s *Service) Done() {
-	time.Sleep(time.Duration(3) * time.Second)
 	s.Quit <- true
 }
 
