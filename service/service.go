@@ -12,9 +12,6 @@ import (
 	"strings"
 )
 
-const (
-	_sharding = 10240
-)
 
 // Service biz service def.
 type Service struct {
@@ -24,7 +21,7 @@ type Service struct {
 	Once sync.Once
 	Test chan string
 	Quit chan bool
-	Send chan map[int64][]*model.TaskIP
+	Send map[int64]chan []*model.TaskIP
 }
 
 // New new a Service and return.
@@ -35,7 +32,7 @@ func New(c *conf.Config) (s *Service) {
 		Wait: new(sync.WaitGroup),
 		Test: make(chan string),
 		Quit: make(chan bool, 1),
-		Send: make(chan map[int64][]*model.TaskIP, _sharding),
+		Send: make(map[int64]chan []*model.TaskIP),
 	}
 
 	go s.loadTaskTick();
@@ -44,7 +41,7 @@ func New(c *conf.Config) (s *Service) {
 
 func (s *Service) loadTaskTick() {
 	for {
-		tasks, _ := s.dao.TaskList(dao.TASK_BY_ALL, "1")
+		tasks, _ := s.dao.TaskTick(dao.TASK_BY_ALL, "1")
 		ips, _ := s.dao.TaskIP(dao.IPS_BY_ALL, 1)
 		if tasks != nil || ips != nil {
 			s.R(tasks, ips)
@@ -53,8 +50,9 @@ func (s *Service) loadTaskTick() {
 	}
 }
 
-func (s *Service) R(tis []*model.TaskItem, ips map[int64][]*model.TaskIP) {
+func (s *Service) R(tis map[int64]*model.TaskItem, ips map[int64][]*model.TaskIP) {
 	if ips != nil {
+
 		s.Wait.Add(2)
 		go s.Consumer(tis)
 		go s.Producer(ips)
@@ -84,10 +82,14 @@ func (s *Service) Tester() {
 func (s *Service) Producer(ips map[int64][]*model.TaskIP) {
 	defer s.Wait.Done()
 
-	select {
-	case s.Send <- ips:
-	default:
-		log.Printf("%s%v", "the chan is full", ips)
+	for tid, ip := range ips {
+		var tmp = make(chan []*model.TaskIP, len(ip))
+		select {
+		case tmp <- ip:
+			s.Send[tid] = tmp
+		default:
+			log.Printf("%s%v", "the chan is full", ip)
+		}
 	}
 
 	go s.Tester()
@@ -95,18 +97,20 @@ func (s *Service) Producer(ips map[int64][]*model.TaskIP) {
 	return
 }
 
-func (s *Service) Consumer(tis []*model.TaskItem) {
+func (s *Service) Consumer(tis map[int64]*model.TaskItem) {
 	defer s.Wait.Done()
 	for {
-		select {
-		case ips, ok := <-s.Send:
-			if !ok {
-				s.Close()
-				return
-			}
-			for _, t := range tis {
+		for tid, v := range s.Send {
+			select {
+			case ips, ok := <-v:
+				if !ok {
+					s.Close()
+					return
+				}
+				t := tis[tid]
+				delete(s.Send, tid)
 				var header = make(map[string]string)
-				for _, ip := range ips[t.Id] {
+				for _, ip := range ips {
 					log.Println("start:" + t.Url)
 					urlData := task.ParseUrl(t.Url, ip.IP)
 					part := strings.Split(urlData["header"], ":")
@@ -117,6 +121,8 @@ func (s *Service) Consumer(tis []*model.TaskItem) {
 					}
 				}
 			}
+		}
+		select {
 		case welcome := <-s.Test:
 			log.Println(welcome)
 		case <-s.Quit:
@@ -132,7 +138,9 @@ func (s *Service) Done() {
 }
 
 func (s *Service) Close() {
-	close(s.Send)
+	for _, v := range s.Send {
+		close(v)
+	}
 	close(s.Test)
 	close(s.Quit)
 }
