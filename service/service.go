@@ -17,11 +17,11 @@ import (
 type Service struct {
 	c    *conf.Config
 	dao	 *dao.Dao
-	Wait *sync.WaitGroup
-	Once sync.Once
-	Test chan string
-	Quit chan bool
-	Send map[int64]chan []*model.TaskIP
+	wait *sync.WaitGroup
+	once sync.Once
+	test chan string
+	quit chan bool
+	send map[int64]chan []*model.TaskIP
 }
 
 // New new a Service and return.
@@ -29,10 +29,10 @@ func New(c *conf.Config) (s *Service) {
 	s = &Service{
 		c:    c,
 		dao:  dao.New(c),
-		Wait: new(sync.WaitGroup),
-		Test: make(chan string),
-		Quit: make(chan bool, 1),
-		Send: make(map[int64]chan []*model.TaskIP),
+		wait: new(sync.WaitGroup),
+		test: make(chan string),
+		quit: make(chan bool, 1),
+		send: make(map[int64]chan []*model.TaskIP),
 	}
 
 	go s.loadTaskTick();
@@ -46,7 +46,7 @@ func (s *Service) loadTaskTick() {
 		if tasks != nil || ips != nil {
 			s.R(tasks, ips)
 		}
-		time.Sleep(time.Duration(10) * time.Second)
+		time.Sleep(time.Duration(60) * time.Second)
 	}
 }
 
@@ -62,16 +62,17 @@ func (s *Service) R(tis []*model.TaskItem, ips map[int64][]*model.TaskIP) {
 			diff = append(diff, t)
 		}
 	}
+	if tmp != nil {
+		s.wait.Add(2)
+		go s.Consumer(tmp)
+		go s.Producer(ips)
+		// s.Wait.Wait()
 
-	s.Wait.Add(2)
-	go s.Consumer(tmp)
-	go s.Producer(ips)
-	// s.Wait.Wait()
-
-	s.Once.Do(func() {
-		tis = nil
-		ips = nil
-	})
+		s.once.Do(func() {
+			tmp = nil
+			ips = nil
+		})
+	}
 
 	go func() {
 		for _, t := range diff {
@@ -85,16 +86,16 @@ func (s *Service) R(tis []*model.TaskItem, ips map[int64][]*model.TaskIP) {
 }
 
 func (s *Service) Tester() {
-	s.Test <- "hello world"
+	s.test <- "hello world"
 }
 
 func (s *Service) Producer(ips map[int64][]*model.TaskIP) {
-	defer s.Wait.Done()
+	defer s.wait.Done()
 	for tid, v := range ips {
 		var tmp = make(chan []*model.TaskIP, len(v))
 		select {
 		case tmp <- v:
-			s.Send[tid] = tmp
+			s.send[tid] = tmp
 		default:
 			for _, ip := range v {
 				log.Printf("%s", "the chan is full(" + ip.IP + ")")
@@ -106,9 +107,9 @@ func (s *Service) Producer(ips map[int64][]*model.TaskIP) {
 }
 
 func (s *Service) Consumer(tis map[int64]*model.TaskItem) {
-	defer s.Wait.Done()
+	defer s.wait.Done()
 	for {
-		for tid, v := range s.Send {
+		for tid, v := range s.send {
 			select {
 			case ips, ok := <-v:
 				if !ok {
@@ -117,7 +118,7 @@ func (s *Service) Consumer(tis map[int64]*model.TaskItem) {
 				}
 
 				t := tis[tid]
-				delete(s.Send, tid)
+				delete(s.send, tid)
 				var header = make(map[string]string)
 				for _, ip := range ips {
 					log.Println("start:" + t.Url)
@@ -132,11 +133,11 @@ func (s *Service) Consumer(tis map[int64]*model.TaskItem) {
 			}
 		}
 		select {
-		case welcome := <-s.Test:
+		case welcome := <-s.test:
 			log.Println(welcome)
-		case <-time.After(time.Duration(3) * time.Second):
+		case <-time.After(time.Duration(3) * time.Microsecond):
 			s.Done()
-		case <-s.Quit:
+		case <-s.quit:
 			log.Println("done")
 			return
 		}
@@ -144,15 +145,15 @@ func (s *Service) Consumer(tis map[int64]*model.TaskItem) {
 }
 
 func (s *Service) Done() {
-	s.Quit <- true
+	s.quit <- true
 }
 
 func (s *Service) Close() {
-	for _, v := range s.Send {
+	for _, v := range s.send {
 		close(v)
 	}
-	close(s.Test)
-	close(s.Quit)
+	close(s.test)
+	close(s.quit)
 }
 
 // Ping check server ok.
