@@ -46,41 +46,40 @@ func (s *Service) loadTaskTick() {
 		if tasks != nil || ips != nil {
 			s.R(tasks, ips)
 		}
-		time.Sleep(time.Duration(60) * time.Second)
+		time.Sleep(time.Duration(3) * time.Second)
 	}
 }
 
 func (s *Service) R(tis []*model.TaskItem, ips map[int64][]*model.TaskIP) {
 	var (
-		tmp = make(map[int64]*model.TaskItem)
-		diff []*model.TaskItem
+	  diff []*model.TaskItem
+	  tmp = make(map[int64]*model.TaskItem)
 	)
 	for _, t := range tis {
-		if _, ok := ips[t.Id]; ok {
-			tmp[t.Id] = t
-		} else {
-			diff = append(diff, t)
-		}
+	  _, ok := ips[t.Id]
+	  if ok {
+	  	tmp[t.Id] = t
+	  } else {
+	    diff = append(diff, t)
+	  }
 	}
-	if tmp != nil {
-		s.wait.Add(2)
-		go s.Consumer(tmp)
-		go s.Producer(ips)
-		// s.Wait.Wait()
 
-		s.once.Do(func() {
-			tmp = nil
-			ips = nil
-		})
-	}
+	s.wait.Add(2)
+	go s.Consumer(tmp)
+	go s.Producer(ips)
+	// s.Wait.Wait()
+
+	s.once.Do(func() {
+	  tmp, ips = nil, nil
+	})
 
 	go func() {
-		for _, t := range diff {
-			if _, err := task.HttpDo(t.Method, t.Url, t.Params, nil); err != nil {
-				log.Printf("%v\n", err)
-				return
-			}
-		}
+	  for _, t := range diff {
+	  	if _, err := task.HttpDo(t.Method, t.Url, t.Params, nil); err != nil {
+		  log.Printf("%v\n", err)
+		  return
+	  	}
+	  }
 	}()
 	return
 }
@@ -135,7 +134,7 @@ func (s *Service) Consumer(tis map[int64]*model.TaskItem) {
 		select {
 		case welcome := <-s.test:
 			log.Println(welcome)
-		case <-time.After(time.Duration(3) * time.Microsecond):
+		case <-time.After(time.Duration(3) * time.Second):
 			s.Done()
 		case <-s.quit:
 			log.Println("done")
