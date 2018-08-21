@@ -10,7 +10,7 @@ import (
 	"monitorGo/dao"
 	"monitorGo/task"
 	"monitorGo/model"
-)
+	)
 
 
 // Service biz service def.
@@ -46,41 +46,44 @@ func (s *Service) loadTaskTick() {
 		if tasks != nil || ips != nil {
 			s.R(tasks, ips)
 		}
-		time.Sleep(time.Duration(3) * time.Second)
+		time.Sleep(time.Duration(10) * time.Second)
 	}
 }
 
 func (s *Service) R(tis []*model.TaskItem, ips map[int64][]*model.TaskIP) {
 	var (
-	  diff []*model.TaskItem
-	  tmp = make(map[int64]*model.TaskItem)
+		diff []*model.TaskItem
+		tmp = make(map[int64]*model.TaskItem)
 	)
 	for _, t := range tis {
-	  _, ok := ips[t.Id]
-	  if ok {
-	  	tmp[t.Id] = t
-	  } else {
-	    diff = append(diff, t)
-	  }
+		if _, ok := ips[t.Id]; ok {
+			tmp[t.Id] = t
+		} else {
+			diff = append(diff, t)
+		}
 	}
 
-	s.wait.Add(2)
-	go s.Consumer(tmp)
-	go s.Producer(ips)
-	// s.Wait.Wait()
+	if len(tmp) > 0 {
+		s.wait.Add(2)
+		go s.Consumer(tmp)
+		go s.Producer(ips)
+		// s.Wait.Wait()
 
-	s.once.Do(func() {
-	  tmp, ips = nil, nil
-	})
+		s.once.Do(func() {
+			tmp, ips = nil, nil
+		})
+	}
 
-	go func() {
-	  for _, t := range diff {
-	  	if _, err := task.HttpDo(t.Method, t.Url, t.Params, nil); err != nil {
-		  log.Printf("%v\n", err)
-		  return
-	  	}
-	  }
-	}()
+	if len(diff) > 0 {
+		go func() {
+			for _, t := range diff {
+				if _, err := task.HttpDo(t.Method, t.Url, t.Params, nil); err != nil {
+					log.Printf("%v\n", err)
+					return
+				}
+			}
+		}()
+	}
 	return
 }
 

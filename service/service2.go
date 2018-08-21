@@ -46,7 +46,7 @@ func (s *Service2) loadTaskTick() {
 		for _, t := range tasks {
 			s.R(t, ips[t.Id])
 		}
-		time.Sleep(time.Duration(60) * time.Second)
+		time.Sleep(time.Duration(10) * time.Second)
 	}
 }
 
