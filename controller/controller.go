@@ -91,6 +91,7 @@ func initService() {
 
 func Register() bool {
 	conf.ParseConfig()
+	conf.Logger(conf.Conf.Log.Dir)
 	initService()
 	setHttpHandle()
 

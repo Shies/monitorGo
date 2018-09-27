@@ -8,15 +8,17 @@ import (
 
 	"monitorGo/conf"
 	"monitorGo/dao"
-	"monitorGo/task"
 	"monitorGo/model"
-	)
+	"monitorGo/net"
+)
 
 
 // Service biz service def.
 type Service struct {
 	c    *conf.Config
 	dao	 *dao.Dao
+	mail *net.Mail
+	http *net.Client
 	wait *sync.WaitGroup
 	once sync.Once
 	test chan string
@@ -29,6 +31,8 @@ func New(c *conf.Config) (s *Service) {
 	s = &Service{
 		c:    c,
 		dao:  dao.New(c),
+		mail: net.NewMail(),
+		http: net.NewClient(c.HttpClient),
 		wait: new(sync.WaitGroup),
 		test: make(chan string),
 		quit: make(chan bool, 1),
@@ -77,7 +81,7 @@ func (s *Service) R(tis []*model.TaskItem, ips map[int64][]*model.TaskIP) {
 	if len(diff) > 0 {
 		go func() {
 			for _, t := range diff {
-				if _, err := task.HttpDo(t.Method, t.Url, t.Params, nil); err != nil {
+				if _, err := s.http.HttpDo(t.Method, t.Url, t.Params, nil); err != nil {
 					log.Printf("%v\n", err)
 					return
 				}
@@ -124,10 +128,10 @@ func (s *Service) Consumer(tis map[int64]*model.TaskItem) {
 				var header = make(map[string]string)
 				for _, ip := range ips {
 					log.Println("start:" + t.Url)
-					urlData := task.ParseUrl(t.Url, ip.IP)
+					urlData := s.http.ParseUrl(t.Url, ip.IP)
 					part := strings.Split(urlData["header"], ":")
 					header["host"] = part[1]
-					if _, err := task.HttpDo(t.Method, urlData["url"], t.Params, header); err != nil {
+					if _, err := s.http.HttpDo(t.Method, urlData["url"], t.Params, header); err != nil {
 						log.Printf("%v\n", urlData)
 						continue
 					}

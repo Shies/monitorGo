@@ -5,5 +5,9 @@
   password = "229616801"
   db_name = "http_monitor"
 
+[httpClient]
+  timeout=2
+  keepalive=60
+
 [xlog]
   dir = "/tmp/go"

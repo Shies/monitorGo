@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/BurntSushi/toml"
+	"time"
 )
 
 var (
@@ -14,8 +15,15 @@ var (
 )
 
 type Config struct {
-	Db  *Db  `toml:"db"`
-	Log *Log `toml:"xlog"`
+	Db         *Db `toml:"db"`
+	Log 	   *Log `toml:"xlog"`
+	HttpClient *HttpClient `toml:"httpClient"`
+}
+
+// httpclient
+type HttpClient struct {
+	Timeout	  time.Duration	`toml:"timeout"`
+	KeepAlive time.Duration `toml:"keepalive"`
 }
 
 // Log
@@ -33,7 +41,7 @@ type Db struct {
 }
 
 func ParseConfig() (err error){
-	 _, err = toml.DecodeFile("./config.example.toml", &Conf)
+	_, err = toml.DecodeFile("./config.example.toml", &Conf)
 	return
 }
 
@@ -48,4 +56,3 @@ func Logger(dir string) (err error) {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lshortfile)
 	return
 }
-
